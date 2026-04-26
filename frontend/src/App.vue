@@ -1,8 +1,9 @@
 <script setup>
+// Main dashboard component for watchlist, K-line chart, and trade advice state.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as echarts from "echarts";
 
-const apiBase = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+const apiBase = import.meta.env.VITE_API_BASE || "http://localhost:8001";
 const wsBase =
   import.meta.env.VITE_WS_BASE ||
   apiBase.replace(/^http/, "ws").replace(/\/$/, "");
@@ -16,6 +17,7 @@ const rows = ref([]);
 const watchlist = ref([]);
 const watchlistLoading = ref(false);
 const updatedAt = ref("");
+const advice = ref(null);
 const status = ref("连接中");
 const error = ref("");
 const copyStatus = ref("");
@@ -27,7 +29,10 @@ let socket = null;
 let reconnectTimer = null;
 let socketSeq = 0;
 
+// Select the newest K-line row for summary metrics.
 const latest = computed(() => rows.value.at(-1));
+
+// Calculate the latest close-to-close change for the summary strip.
 const change = computed(() => {
   if (rows.value.length < 2) return null;
   const last = rows.value.at(-1);
@@ -38,22 +43,32 @@ const change = computed(() => {
   return { value, percent };
 });
 
+// Pick the price color class according to the latest change direction.
 const changeClass = computed(() => {
   if (!change.value) return "";
   return change.value.value >= 0 ? "rise" : "fall";
 });
 
+// Pick the advice color class according to the backend action signal.
+const adviceActionClass = computed(() => {
+  if (!advice.value?.action) return "";
+  return `advice-${advice.value.action}`;
+});
+
 function formatNumber(value, digits = 2) {
+  // Format numeric display values and keep missing values visually stable.
   if (value === null || value === undefined || Number.isNaN(value)) return "--";
   return Number(value).toFixed(digits);
 }
 
 function valueForExport(value) {
+  // Keep missing table cells blank when copying K-line data.
   if (value === null || value === undefined || Number.isNaN(value)) return "";
   return value;
 }
 
 function chartOption() {
+  // Build the full ECharts option from the current K-line rows.
   const dates = rows.value.map((item) => item.date);
   const candle = rows.value.map((item) => [
     item.open,
@@ -183,22 +198,26 @@ function chartOption() {
 }
 
 function renderChart() {
+  // Initialize or update the chart instance after data/layout changes.
   if (!chartEl.value) return;
   if (!chart) chart = echarts.init(chartEl.value);
   chart.setOption(chartOption(), true);
 }
 
 function applyPayload(payload) {
+  // Apply a backend payload to UI state and schedule a chart redraw.
   rows.value = payload.rows || [];
   if (payload.symbol) currentSymbol.value = payload.symbol;
   currentName.value = payload.name || "";
   updatedAt.value = payload.updatedAt || "";
+  advice.value = payload.advice || null;
   error.value = payload.error || "";
   status.value = payload.error ? "接口异常" : "实时连接";
   nextTick(renderChart);
 }
 
 async function loadWatchlist() {
+  // Fetch the persisted watchlist for the sidebar.
   watchlistLoading.value = true;
   try {
     const response = await fetch(`${apiBase}/api/watchlist`);
@@ -211,6 +230,7 @@ async function loadWatchlist() {
 }
 
 async function fetchOnce(query) {
+  // Fetch a single K-line payload as a fallback when WebSocket is unavailable.
   const response = await fetch(
     `${apiBase}/api/stocks/${encodeURIComponent(query)}/kline`,
   );
@@ -218,6 +238,7 @@ async function fetchOnce(query) {
 }
 
 function connect(query) {
+  // Open a WebSocket for live payloads and reconnect the latest query on close.
   clearTimeout(reconnectTimer);
   const seq = ++socketSeq;
   if (socket) socket.close();
@@ -225,13 +246,16 @@ function connect(query) {
   status.value = "连接中";
   socket = new WebSocket(`${wsBase}/ws/stocks/${encodeURIComponent(query)}`);
 
+  // Apply every pushed payload from the backend cache.
   socket.onmessage = (event) => {
     applyPayload(JSON.parse(event.data));
   };
+  // Fall back to HTTP once if the live connection errors.
   socket.onerror = () => {
     status.value = "连接异常";
     fetchOnce(query).catch(() => {});
   };
+  // Reconnect only for the most recent socket generation.
   socket.onclose = () => {
     if (seq !== socketSeq) return;
     status.value = "已断开，重连中";
@@ -240,6 +264,7 @@ function connect(query) {
 }
 
 function submitQuery() {
+  // Promote the search box value into the active query.
   const nextQuery = queryInput.value.trim();
   if (!nextQuery) return;
   stopCopySelection();
@@ -248,6 +273,7 @@ function submitQuery() {
 }
 
 async function addToWatchlist(query = queryInput.value) {
+  // Resolve and persist a stock into the watchlist.
   const nextQuery = query.trim();
   if (!nextQuery) return;
 
@@ -272,6 +298,7 @@ async function addToWatchlist(query = queryInput.value) {
 }
 
 async function removeFromWatchlist(symbol) {
+  // Delete a stock from the watchlist and refresh the sidebar.
   try {
     await fetch(`${apiBase}/api/watchlist/${encodeURIComponent(symbol)}`, {
       method: "DELETE",
@@ -289,6 +316,7 @@ async function removeFromWatchlist(symbol) {
 }
 
 function selectWatchlistStock(item) {
+  // Switch the dashboard to a stock selected from the sidebar.
   stopCopySelection();
   const query = item.symbol;
   queryInput.value = item.symbol;
@@ -296,6 +324,7 @@ function selectWatchlistStock(item) {
 }
 
 function startCopySelection() {
+  // Enter the chart date-range selection mode for copying rows.
   if (!rows.value.length) {
     copyStatus.value = "暂无数据";
     return;
@@ -307,12 +336,14 @@ function startCopySelection() {
 }
 
 function stopCopySelection() {
+  // Leave copy-selection mode and clear the selected starting point.
   copySelectionMode.value = false;
   copyStartIndex.value = null;
   nextTick(renderChart);
 }
 
 async function writeRowsToClipboard(selectedRows) {
+  // Copy selected K-line rows as tab-separated text for spreadsheets.
   if (!selectedRows.length) {
     copyStatus.value = "区间无数据";
     return;
@@ -355,6 +386,7 @@ async function writeRowsToClipboard(selectedRows) {
 }
 
 function handleChartClick(params) {
+  // Use two candlestick clicks to choose and copy an inclusive date range.
   if (!copySelectionMode.value) return;
   if (params.componentType !== "series" || params.seriesIndex !== 0) return;
 
@@ -374,8 +406,10 @@ function handleChartClick(params) {
   writeRowsToClipboard(selectedRows);
 }
 
+// Reconnect live data whenever the active query changes.
 watch(currentQuery, (query) => connect(query));
 
+// Initialize chart, data, and browser event listeners when mounted.
 onMounted(() => {
   chart = echarts.init(chartEl.value);
   chart.on("click", handleChartClick);
@@ -384,6 +418,7 @@ onMounted(() => {
   window.addEventListener("resize", renderChart);
 });
 
+// Close sockets and dispose chart resources before the component unmounts.
 onBeforeUnmount(() => {
   socketSeq += 1;
   clearTimeout(reconnectTimer);
@@ -490,6 +525,37 @@ onBeforeUnmount(() => {
             <button type="button" @click="stopCopySelection">取消</button>
           </div>
           <div ref="chartEl" class="chart"></div>
+        </section>
+
+        <section class="advice-panel">
+          <div class="advice-header">
+            <div>
+              <span>当前操作建议</span>
+              <strong v-if="advice" :class="adviceActionClass">
+                {{ advice.actionText }}
+              </strong>
+              <strong v-else>当前无操作建议</strong>
+            </div>
+            <div v-if="advice" class="advice-score">
+              <span>综合评分</span>
+              <strong>{{ advice.score }}</strong>
+            </div>
+          </div>
+
+          <div v-if="advice" class="advice-content">
+            <div>
+              <h2>理由说明</h2>
+              <ul>
+                <li v-for="reason in advice.reasons" :key="reason">{{ reason }}</li>
+              </ul>
+            </div>
+            <div>
+              <h2>风险提示</h2>
+              <ul>
+                <li v-for="risk in advice.risks" :key="risk">{{ risk }}</li>
+              </ul>
+            </div>
+          </div>
         </section>
       </div>
     </div>

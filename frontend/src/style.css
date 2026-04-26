@@ -1,3 +1,5 @@
+/* Styles for the stock dashboard layout, chart, watchlist, and advice panel. */
+
 * {
   box-sizing: border-box;
 }
@@ -269,6 +271,83 @@ input {
   height: 100%;
 }
 
+.advice-panel {
+  margin-top: 14px;
+  border: 1px solid #dce2ea;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.advice-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #edf0f5;
+  padding-bottom: 14px;
+}
+
+.advice-header span,
+.advice-score span {
+  display: block;
+  margin-bottom: 6px;
+  color: #667085;
+  font-size: 13px;
+}
+
+.advice-header strong {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.advice-score {
+  min-width: 112px;
+  text-align: right;
+}
+
+.advice-score strong {
+  font-size: 28px;
+}
+
+.advice-buy {
+  color: #c43836;
+}
+
+.advice-sell {
+  color: #16865d;
+}
+
+.advice-hold {
+  color: #195fc9;
+}
+
+.advice-content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  padding-top: 14px;
+}
+
+.advice-content h2 {
+  margin: 0 0 10px;
+  color: #344054;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+.advice-content ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  color: #475467;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
 .error-bar {
   position: absolute;
   z-index: 2;
@@ -357,6 +436,10 @@ input {
     height: 560px;
     min-height: 560px;
   }
+
+  .advice-content {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 520px) {
@@ -382,5 +465,15 @@ input {
   .selection-tip {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .advice-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .advice-score {
+    min-width: 0;
+    text-align: left;
   }
 }
