@@ -96,10 +96,35 @@ curl http://localhost:8001/api/stocks/000001/kline
 
 ## Frontend Structure
 
-- `frontend/src/App.vue`: Main dashboard UI and WebSocket/API state handling.
-- `frontend/src/style.css`: App styling.
-- `frontend/src/main.js`: Vue app bootstrap.
+- `frontend/src/App.vue`: Dashboard shell that wires composables and presentational panels.
+- `frontend/src/main.js`: Vue app bootstrap and global error reporting.
+- `frontend/src/components/`: Presentational Vue panels.
+  - `AppHeader.vue`: Query form, add-watchlist button, and copy-mode toggle.
+  - `WatchlistPanel.vue`: Persisted watchlist display and item actions.
+  - `SummaryCards.vue`: Current stock, close, change, update time, and status.
+  - `KlineChartPanel.vue`: ECharts container plus copy-range interaction overlay.
+  - `BacktestPanel.vue`: Strategy selection, metrics, and executed signal list.
+  - `AdvicePanel.vue`: Backend-generated trade advice display.
+- `frontend/src/composables/`: Vue state/lifecycle modules.
+  - `useStockDashboard.js`: Query state, WebSocket data flow, watchlist API calls, and copy-to-clipboard workflow.
+  - `useBacktest.js`: Selected strategy state and automatic result refresh.
+  - `useKlineChart.js`: ECharts instance lifecycle and redraw scheduling.
+- `frontend/src/services/`: Side-effect and pure-domain services.
+  - `stockApi.js`: Thin wrappers around `/api/watchlist` and `/api/stocks/{query}/kline`.
+  - `backtest.js`: Pure strategy rules, next-open execution, limit-up/down handling, return and drawdown calculation.
+- `frontend/src/charts/klineChartOption.js`: ECharts option builder for candlestick, MA lines, volume, buy/sell markers, and holding bands.
+- `frontend/src/utils/formatters.js`: Numeric, percent, and clipboard export formatting helpers.
+- `frontend/src/config.js`: Vite environment-derived API/WebSocket bases.
+- `frontend/src/style.css`: Global dashboard styling.
 - `frontend/vite.config.js`: Vite server/preview fixed port config.
+
+## Frontend Refactor Notes
+
+- Keep `App.vue` thin. Add new dashboard behavior through `components/`, `composables/`, `services/`, or `charts/` according to responsibility.
+- Keep API calls inside `frontend/src/services/stockApi.js`; keep pure strategy math inside `frontend/src/services/backtest.js`.
+- Keep ECharts option shape in `frontend/src/charts/klineChartOption.js`; components should not inline chart option objects.
+- Keep display-only UI in `frontend/src/components/`; components should receive data through props and emit user intents.
+- The global stylesheet currently owns dashboard layout and panel styling. Reuse existing class names before adding new visual systems.
 
 ## Stock Data Rules
 
@@ -140,6 +165,24 @@ The K-line response includes:
 - `reasons`
 - `risks`
 - `generatedAt`
+
+## Strategy Backtest Rules
+
+The strategy backtest is currently frontend-only and uses the K-line `rows` already returned by the backend. It does not call a separate backtest API.
+
+Available strategies:
+
+- `ma20-cross` / `20日线：站上买入，跌破卖出`: when not holding, close above MA20 signals buy; when holding, close below MA20 signals sell.
+- `volume-drop` / `放量急跌买入，放量卖出`: when not holding, volume above 2x the previous 20-day average and close down at least 4% from the previous close signals buy; when holding, volume above 2x the previous 20-day average signals sell.
+
+Execution assumptions:
+
+- Signals are generated after the signal day's close.
+- Actual buy/sell execution happens at the next trading day's open.
+- Limit-up opens cannot be bought; limit-down opens cannot be sold.
+- Blocked sell orders remain pending until the next tradable open. Blocked buy orders are skipped.
+- Chart buy/sell markers represent actual execution dates/prices.
+- Yellow chart `markArea` bands represent actual holding periods.
 
 ## Development Notes
 

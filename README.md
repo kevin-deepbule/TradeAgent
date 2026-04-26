@@ -10,6 +10,37 @@ Python + Vue stock K-line dashboard powered by AkShare.
 - Vue frontend renders candlestick, moving-average lines, and volume with ECharts.
 - WebSocket pushes the cached backend payload to the frontend every 5 seconds.
 - One-click copy exports date, OHLC, volume, MA5, MA20, and MA60 as tab-separated text.
+- Watchlist persistence is backed by SQLite at `backend/data/watchlist.db`.
+- Strategy backtesting runs in the frontend against the current K-line rows, with buy/sell markers and yellow holding bands drawn on the chart.
+
+## Frontend Structure
+
+The Vue app is intentionally split by responsibility:
+
+- `frontend/src/App.vue`: page shell and cross-panel wiring.
+- `frontend/src/main.js`: Vue app creation and global error reporting.
+- `frontend/src/components/`: presentational panels for header, watchlist, summary, chart, backtest, and advice.
+- `frontend/src/composables/`: Vue state/lifecycle modules for stock data, backtesting, and ECharts.
+- `frontend/src/services/`: API wrappers and pure backtest calculations.
+- `frontend/src/charts/`: ECharts option builders.
+- `frontend/src/utils/`: shared formatting and numeric helpers.
+- `frontend/src/config.js`: Vite environment-derived API/WebSocket bases.
+- `frontend/src/style.css`: global dashboard styling.
+
+## Backtest Rules
+
+Current strategies:
+
+- `20日线：站上买入，跌破卖出`: if not holding and close is above MA20, signal buy; if holding and close is below MA20, signal sell.
+- `放量急跌买入，放量卖出`: if not holding, volume is more than twice the previous 20-day average and close is down at least 4% from the previous close, signal buy; if holding and volume is more than twice the previous 20-day average, signal sell.
+
+Execution model:
+
+- Signals are generated after the signal day's close.
+- Buy and sell executions happen at the next trading day's open.
+- Limit-up opens cannot be bought; limit-down opens cannot be sold.
+- Blocked sell orders remain pending until the next tradable open. Blocked buy orders are skipped.
+- Chart markers represent actual execution dates/prices, not signal dates.
 
 ## Run Backend
 
@@ -61,4 +92,14 @@ You can override them with:
 
 ```bash
 VITE_API_BASE=http://localhost:8001 VITE_WS_BASE=ws://localhost:8001 npm run dev
+```
+
+## Verification
+
+```bash
+python3 -m py_compile $(find backend -name '*.py' -print)
+npm --prefix frontend run build
+curl http://localhost:8001/api/health
+curl http://localhost:8001/api/watchlist
+curl http://localhost:8001/api/stocks/000001/kline
 ```
