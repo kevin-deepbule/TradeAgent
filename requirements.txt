@@ -1,0 +1,4 @@
+akshare
+fastapi
+pandas
+uvicorn[standard]
