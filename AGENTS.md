@@ -174,13 +174,16 @@ Available strategies:
 
 - `ma20-cross` / `20日线：站上买入，跌破卖出`: when not holding, close above MA20 signals buy; when holding, close below MA20 signals sell.
 - `volume-drop` / `放量急跌买入，放量卖出`: when not holding, volume above 2x the previous 20-day average and close down at least 4% from the previous close signals buy; when holding, volume above 2x the previous 20-day average signals sell.
+- `ma20-breakout` / `MA20趋势跟随：有效突破`: when not holding, close above `MA20 * 1.02` and MA60 is rising signal buy; when holding, close below `MA20 * 0.98`, MA20 flattening/down, or overheat volume-price stall signals sell.
+- `boll-break-buy` / `BOLL下轨买入，上轨卖出`: when not holding, close crossing below BOLL(20, 2) lower band signals buy; when holding, intraday high crossing above BOLL(20, 2) upper band signals sell.
 
 Execution assumptions:
 
-- Signals are generated after the signal day's close.
-- Actual buy/sell execution happens at the next trading day's open.
-- Limit-up opens cannot be bought; limit-down opens cannot be sold.
-- Blocked sell orders remain pending until the next tradable open. Blocked buy orders are skipped.
+- Signals are generated from completed K-line rows after the signal day's close, even when a condition uses intraday high/low.
+- All strategies must execute through the shared `calculateBacktest` engine in `frontend/src/services/backtest.js`; individual strategy helpers should only return `buy`, `sell`, or `null`.
+- Actual buy/sell execution always happens at the next trading day's open price.
+- Limit-up opens cannot be bought; blocked buy orders are skipped.
+- Limit-down opens cannot be sold; blocked sell orders remain pending until the next tradable open.
 - Chart buy/sell markers represent actual execution dates/prices.
 - Yellow chart `markArea` bands represent actual holding periods.
 

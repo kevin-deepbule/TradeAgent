@@ -4,10 +4,20 @@ import { numericValue } from "../utils/formatters";
 
 export const STRATEGY_MA20 = "ma20-cross";
 export const STRATEGY_VOLUME_DROP = "volume-drop";
+export const STRATEGY_MA20_BREAKOUT = "ma20-breakout";
+export const STRATEGY_BOLL_BREAK = "boll-break-buy";
+
+const BOLL_WINDOW = 20;
+const BOLL_MULTIPLIER = 2;
 
 export const strategyOptions = [
   { id: STRATEGY_MA20, name: "20日线：站上买入，跌破卖出" },
   { id: STRATEGY_VOLUME_DROP, name: "放量急跌买入，放量卖出" },
+  {
+    id: STRATEGY_MA20_BREAKOUT,
+    name: "MA20趋势跟随：有效突破",
+  },
+  { id: STRATEGY_BOLL_BREAK, name: "BOLL下轨买入，上轨卖出" },
 ];
 
 export function signalLabel(type) {
@@ -60,8 +70,98 @@ function averagePreviousVolume(data, index, days = 20) {
   return volumes.reduce((sum, value) => sum + value, 0) / volumes.length;
 }
 
+function dailyChangePercent(row, previous) {
+  // Calculate the close-to-close daily move used by volume-price strategies.
+  const close = numericValue(row?.close);
+  const previousClose = numericValue(previous?.close);
+  if (close === null || previousClose === null || previousClose <= 0) return null;
+  return ((close - previousClose) / previousClose) * 100;
+}
+
+function bollBandAt(data, index) {
+  // Calculate the BOLL(20, 2) upper and lower bands for a completed row.
+  if (index < BOLL_WINDOW - 1) return null;
+  const closes = data
+    .slice(index - BOLL_WINDOW + 1, index + 1)
+    .map((item) => numericValue(item.close));
+  if (closes.length < BOLL_WINDOW || closes.some((value) => value === null)) {
+    return null;
+  }
+
+  const middle = closes.reduce((sum, value) => sum + value, 0) / BOLL_WINDOW;
+  const variance =
+    closes.reduce((sum, value) => sum + (value - middle) ** 2, 0) / BOLL_WINDOW;
+  const offset = Math.sqrt(variance) * BOLL_MULTIPLIER;
+  return { upper: middle + offset, lower: middle - offset };
+}
+
+function bollBreakAction(data, index, holding) {
+  // Buy on a lower-band close and sell when intraday high breaks the upper band.
+  if (index < 1) return null;
+  const row = data[index];
+  const previous = data[index - 1];
+  const close = numericValue(row?.close);
+  const high = numericValue(row?.high);
+  const previousClose = numericValue(previous?.close);
+  const previousHigh = numericValue(previous?.high);
+  const band = bollBandAt(data, index);
+  const previousBand = bollBandAt(data, index - 1);
+  if (
+    [close, high, previousClose, previousHigh].some((value) => value === null) ||
+    !band ||
+    !previousBand
+  ) {
+    return null;
+  }
+
+  const crossesBelowLower = previousClose >= previousBand.lower && close < band.lower;
+  const highBreaksUpper = previousHigh <= previousBand.upper && high > band.upper;
+  if (!holding && crossesBelowLower) return "buy";
+  if (holding && highBreaksUpper) return "sell";
+  return null;
+}
+
+function ma20BreakoutAction(data, index, holding) {
+  // Apply the MA20 breakout, MA60 slope, and overheat take-profit rules.
+  const row = data[index];
+  const previous = data[index - 1];
+  if (!row || !previous) return null;
+
+  const close = numericValue(row.close);
+  const ma20 = numericValue(row.ma20);
+  const ma60 = numericValue(row.ma60);
+  const previousMa20 = numericValue(previous.ma20);
+  const previousMa60 = numericValue(previous.ma60);
+  if ([close, ma20, ma60, previousMa20, previousMa60].some((value) => value === null)) {
+    return null;
+  }
+
+  const ma20Rising = ma20 > previousMa20;
+  const ma60Rising = ma60 > previousMa60;
+
+  if (!holding) {
+    const validBreakout = close > ma20 * 1.02;
+    return validBreakout && ma60Rising ? "buy" : null;
+  }
+
+  const trendBroken = close < ma20 * 0.98 || !ma20Rising;
+  if (trendBroken) return "sell";
+
+  const volume = numericValue(row.volume);
+  const volumeAverage = averagePreviousVolume(data, index);
+  const changePercent = dailyChangePercent(row, previous);
+  if ([volume, volumeAverage, changePercent].some((value) => value === null)) {
+    return null;
+  }
+
+  const trendStillHealthy = close > ma20 && ma20Rising;
+  const overheated = close > ma20 * 1.2;
+  const volumeStall = volume > volumeAverage * 2 && changePercent < 2;
+  return trendStillHealthy && overheated && volumeStall ? "sell" : null;
+}
+
 function strategyAction(strategyId, data, index, holding) {
-  // Return the next-open action signaled by the selected strategy after close.
+  // Return only a signal; calculateBacktest applies next-open and limit rules.
   const row = data[index];
   const previous = data[index - 1];
   if (!row) return null;
@@ -90,6 +190,14 @@ function strategyAction(strategyId, data, index, holding) {
     if (!holding && volumeSpike && dropPercent <= -4) return "buy";
   }
 
+  if (strategyId === STRATEGY_MA20_BREAKOUT) {
+    return ma20BreakoutAction(data, index, holding);
+  }
+
+  if (strategyId === STRATEGY_BOLL_BREAK) {
+    return bollBreakAction(data, index, holding);
+  }
+
   return null;
 }
 
@@ -107,7 +215,7 @@ function calculateMaxDrawdown(equityCurve) {
 }
 
 export function calculateBacktest(data, strategyId, stock = {}) {
-  // Replay signals at close and execute actual trades at the next tradable open.
+  // Centralize all strategy execution at the next tradable open with limit checks.
   const strategy = strategyOptions.find((item) => item.id === strategyId);
   const limitPercent = priceLimitPercent(stock.symbol, stock.name);
   const signals = [];

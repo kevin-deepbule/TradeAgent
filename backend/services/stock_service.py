@@ -20,6 +20,18 @@ from backend.utils import (
 )
 
 
+KLINE_DISPLAY_YEARS = 3
+KLINE_MA_WARMUP_DAYS = 120
+
+
+def years_ago(value: date, years: int) -> date:
+    """Return the same calendar day a number of years earlier."""
+    try:
+        return value.replace(year=value.year - years)
+    except ValueError:
+        return value.replace(year=value.year - years, month=2, day=28)
+
+
 async def load_watchlist_into_store() -> None:
     """Load persisted watchlist symbols into the live refresh store."""
     items = await asyncio.to_thread(list_watchlist_sync)
@@ -80,7 +92,8 @@ def fetch_kline_sync(symbol: str, name: str | None = None) -> dict[str, Any]:
     import akshare as ak
 
     end = date.today()
-    start = end - timedelta(days=520)
+    display_start = years_ago(end, KLINE_DISPLAY_YEARS)
+    start = display_start - timedelta(days=KLINE_MA_WARMUP_DAYS)
     start_text = start.strftime("%Y%m%d")
     end_text = end.strftime("%Y%m%d")
     source = "eastmoney"
@@ -148,8 +161,10 @@ def fetch_kline_sync(symbol: str, name: str | None = None) -> dict[str, Any]:
     df["ma20"] = df["close"].rolling(window=20).mean()
     df["ma60"] = df["close"].rolling(window=60).mean()
 
+    display_df = df[df["date"] >= pd.Timestamp(display_start)]
+
     rows = []
-    for _, row in df.tail(240).iterrows():
+    for _, row in display_df.iterrows():
         rows.append(
             {
                 "date": row["date"].strftime("%Y-%m-%d"),

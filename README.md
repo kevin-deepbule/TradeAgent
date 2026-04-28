@@ -33,13 +33,16 @@ Current strategies:
 
 - `20日线：站上买入，跌破卖出`: if not holding and close is above MA20, signal buy; if holding and close is below MA20, signal sell.
 - `放量急跌买入，放量卖出`: if not holding, volume is more than twice the previous 20-day average and close is down at least 4% from the previous close, signal buy; if holding and volume is more than twice the previous 20-day average, signal sell.
+- `MA20趋势跟随：有效突破`: if not holding, close is above `MA20 * 1.02` and MA60 is rising, signal buy; if holding, trend break or overheat volume-price stall rules signal sell.
+- `BOLL下轨买入，上轨卖出`: if not holding, close crosses below BOLL(20, 2) lower band, signal buy; if holding, intraday high crosses above BOLL(20, 2) upper band, signal sell.
 
 Execution model:
 
-- Signals are generated after the signal day's close.
-- Buy and sell executions happen at the next trading day's open.
-- Limit-up opens cannot be bought; limit-down opens cannot be sold.
-- Blocked sell orders remain pending until the next tradable open. Blocked buy orders are skipped.
+- Signals are generated from completed K-line rows after the signal day's close, even when a condition uses intraday high/low.
+- Every strategy uses the shared frontend backtest execution engine; strategy rules only create `buy`/`sell` signals.
+- Buy and sell executions always happen at the next trading day's open price.
+- Limit-up opens cannot be bought; blocked buy orders are skipped.
+- Limit-down opens cannot be sold; blocked sell orders remain pending until the next tradable open.
 - Chart markers represent actual execution dates/prices, not signal dates.
 
 ## Run Backend

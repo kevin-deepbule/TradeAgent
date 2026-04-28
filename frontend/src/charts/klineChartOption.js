@@ -3,6 +3,68 @@
 import { numericValue } from "../utils/formatters";
 import { signalLabel } from "../services/backtest";
 
+const DEFAULT_VISIBLE_MONTHS = 6;
+const BOLL_WINDOW = 20;
+const BOLL_MULTIPLIER = 2;
+
+function formatLocalDate(date) {
+  // Format a Date with local calendar fields to avoid UTC day shifts.
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function monthsBefore(dateText, months) {
+  // Return a YYYY-MM-DD date string several calendar months before dateText.
+  const date = new Date(`${dateText}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setMonth(date.getMonth() - months);
+  return formatLocalDate(date);
+}
+
+function defaultZoomStartValue(dates) {
+  // Pick the first available trading day inside the default visible window.
+  const latestDate = dates.at(-1);
+  if (!latestDate) return undefined;
+  const cutoff = monthsBefore(latestDate, DEFAULT_VISIBLE_MONTHS);
+  if (!cutoff) return dates[0];
+  return dates.find((date) => date >= cutoff) || dates[0];
+}
+
+function calculateBollBands(rows) {
+  // Calculate BOLL(20, 2) upper and lower bands from closing prices.
+  const closes = rows.map((item) => numericValue(item.close));
+  const upper = [];
+  const lower = [];
+
+  closes.forEach((close, index) => {
+    if (close === null || index < BOLL_WINDOW - 1) {
+      upper.push(null);
+      lower.push(null);
+      return;
+    }
+
+    const windowCloses = closes.slice(index - BOLL_WINDOW + 1, index + 1);
+    if (windowCloses.some((value) => value === null)) {
+      upper.push(null);
+      lower.push(null);
+      return;
+    }
+
+    const mean =
+      windowCloses.reduce((sum, value) => sum + value, 0) / BOLL_WINDOW;
+    const variance =
+      windowCloses.reduce((sum, value) => sum + (value - mean) ** 2, 0) /
+      BOLL_WINDOW;
+    const offset = Math.sqrt(variance) * BOLL_MULTIPLIER;
+    upper.push(mean + offset);
+    lower.push(mean - offset);
+  });
+
+  return { upper, lower };
+}
+
 function backtestMarkPoints(rows, dates, backtestResult) {
   // Convert backtest buy/sell executions into ECharts marker points.
   return (backtestResult?.signals || [])
@@ -59,6 +121,9 @@ export function makeKlineChartOption({
   const ma60 = rows.map((item) => item.ma60);
   const strategyMarks = backtestMarkPoints(rows, dates, backtestResult);
   const holdingAreas = backtestMarkAreas(dates, backtestResult);
+  const zoomStartValue = defaultZoomStartValue(dates);
+  const bollBands = calculateBollBands(rows);
+  const legendData = ["日K", "MA5", "MA20", "MA60", "BOLL上轨", "BOLL下轨"];
 
   return {
     animation: false,
@@ -70,8 +135,13 @@ export function makeKlineChartOption({
       textStyle: { fontSize: 12 },
     },
     legend: {
+      type: "scroll",
       top: 8,
-      data: ["日K", "MA5", "MA20", "MA60"],
+      data: legendData,
+      selected: {
+        BOLL上轨: false,
+        BOLL下轨: false,
+      },
     },
     grid: [
       { left: 56, right: 28, top: 48, height: "62%" },
@@ -112,8 +182,20 @@ export function makeKlineChartOption({
       },
     ],
     dataZoom: [
-      { type: "inside", xAxisIndex: [0, 1], start: 35, end: 100 },
-      { type: "slider", xAxisIndex: [0, 1], bottom: 10, height: 22 },
+      {
+        type: "inside",
+        xAxisIndex: [0, 1],
+        startValue: zoomStartValue,
+        end: 100,
+      },
+      {
+        type: "slider",
+        xAxisIndex: [0, 1],
+        startValue: zoomStartValue,
+        end: 100,
+        bottom: 10,
+        height: 22,
+      },
     ],
     series: [
       {
@@ -173,6 +255,22 @@ export function makeKlineChartOption({
         smooth: true,
         showSymbol: false,
         lineStyle: { width: 1.5 },
+      },
+      {
+        name: "BOLL上轨",
+        type: "line",
+        data: bollBands.upper,
+        smooth: true,
+        showSymbol: false,
+        lineStyle: { width: 1.3, color: "#7a4cc2" },
+      },
+      {
+        name: "BOLL下轨",
+        type: "line",
+        data: bollBands.lower,
+        smooth: true,
+        showSymbol: false,
+        lineStyle: { width: 1.3, color: "#00a6a6" },
       },
       {
         name: "成交量",
