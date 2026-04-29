@@ -169,13 +169,14 @@ The K-line response includes:
 ## Strategy Backtest Rules
 
 The strategy backtest is currently frontend-only and uses the K-line `rows` already returned by the backend. It does not call a separate backtest API.
+The backend returns the most recent 5 calendar years of daily K-line rows, so the backtest window follows that returned data range.
 
 Available strategies:
 
 - `ma20-cross` / `20日线：站上买入，跌破卖出`: when not holding, close above MA20 signals buy; when holding, close below MA20 signals sell.
 - `volume-drop` / `放量急跌买入，放量卖出`: when not holding, volume above 2x the previous 20-day average and close down at least 4% from the previous close signals buy; when holding, volume above 2x the previous 20-day average signals sell.
 - `ma20-breakout` / `MA20趋势跟随：有效突破`: when not holding, close above `MA20 * 1.02` and MA60 is rising signal buy; when holding, close below `MA20 * 0.98`, MA20 flattening/down, or overheat volume-price stall signals sell.
-- `boll-break-buy` / `BOLL下轨买入，上轨卖出`: when not holding, close crossing below BOLL(20, 2) lower band signals buy; when holding, intraday high crossing above BOLL(20, 2) upper band signals sell.
+- `boll-break-buy` / `BOLL下轨买入，上轨卖出`: when not holding, close crossing below BOLL(20, 2) lower band signals buy; when holding, intraday high crossing above BOLL(20, 2) upper band, holding more than 30 trading days, or close falling more than 20% below the actual entry price signals sell.
 
 Execution assumptions:
 

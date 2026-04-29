@@ -20,7 +20,7 @@ from backend.utils import (
 )
 
 
-KLINE_DISPLAY_YEARS = 3
+KLINE_DISPLAY_YEARS = 5
 KLINE_MA_WARMUP_DAYS = 120
 
 

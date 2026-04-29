@@ -95,8 +95,8 @@ function bollBandAt(data, index) {
   return { upper: middle + offset, lower: middle - offset };
 }
 
-function bollBreakAction(data, index, holding) {
-  // Buy on a lower-band close and sell when intraday high breaks the upper band.
+function bollBreakAction(data, index, holding, entry) {
+  // Buy on lower-band close; sell on upper break, time stop, or 20% loss.
   if (index < 1) return null;
   const row = data[index];
   const previous = data[index - 1];
@@ -116,8 +116,11 @@ function bollBreakAction(data, index, holding) {
 
   const crossesBelowLower = previousClose >= previousBand.lower && close < band.lower;
   const highBreaksUpper = previousHigh <= previousBand.upper && high > band.upper;
+  const holdingDays = entry ? index - entry.index + 1 : 0;
+  const heldOverThirtyDays = holdingDays > 30;
+  const stopLoss = entry ? close < entry.price * 0.8 : false;
   if (!holding && crossesBelowLower) return "buy";
-  if (holding && highBreaksUpper) return "sell";
+  if (holding && (highBreaksUpper || heldOverThirtyDays || stopLoss)) return "sell";
   return null;
 }
 
@@ -160,7 +163,7 @@ function ma20BreakoutAction(data, index, holding) {
   return trendStillHealthy && overheated && volumeStall ? "sell" : null;
 }
 
-function strategyAction(strategyId, data, index, holding) {
+function strategyAction(strategyId, data, index, holding, entry) {
   // Return only a signal; calculateBacktest applies next-open and limit rules.
   const row = data[index];
   const previous = data[index - 1];
@@ -195,7 +198,7 @@ function strategyAction(strategyId, data, index, holding) {
   }
 
   if (strategyId === STRATEGY_BOLL_BREAK) {
-    return bollBreakAction(data, index, holding);
+    return bollBreakAction(data, index, holding, entry);
   }
 
   return null;
@@ -298,7 +301,7 @@ export function calculateBacktest(data, strategyId, stock = {}) {
 
     const action =
       !pendingOrder && index < data.length - 1
-        ? strategyAction(strategyId, data, index, holding)
+        ? strategyAction(strategyId, data, index, holding, entry)
         : null;
     if (action) {
       pendingOrder = { type: action, signalIndex: index, signalDate: row.date };

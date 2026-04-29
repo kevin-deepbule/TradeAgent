@@ -29,12 +29,15 @@ The Vue app is intentionally split by responsibility:
 
 ## Backtest Rules
 
+The backend returns the most recent 5 calendar years of daily K-line rows, and
+frontend backtests run across that full returned window.
+
 Current strategies:
 
 - `20日线：站上买入，跌破卖出`: if not holding and close is above MA20, signal buy; if holding and close is below MA20, signal sell.
 - `放量急跌买入，放量卖出`: if not holding, volume is more than twice the previous 20-day average and close is down at least 4% from the previous close, signal buy; if holding and volume is more than twice the previous 20-day average, signal sell.
 - `MA20趋势跟随：有效突破`: if not holding, close is above `MA20 * 1.02` and MA60 is rising, signal buy; if holding, trend break or overheat volume-price stall rules signal sell.
-- `BOLL下轨买入，上轨卖出`: if not holding, close crosses below BOLL(20, 2) lower band, signal buy; if holding, intraday high crosses above BOLL(20, 2) upper band, signal sell.
+- `BOLL下轨买入，上轨卖出`: if not holding, close crosses below BOLL(20, 2) lower band, signal buy; if holding, intraday high crosses above BOLL(20, 2) upper band, the position has been held for more than 30 trading days, or close falls more than 20% below the actual entry price, signal sell.
 
 Execution model:
 
