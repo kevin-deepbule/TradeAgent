@@ -30,6 +30,7 @@ export function useStockDashboard() {
   let socket = null;
   let reconnectTimer = null;
   let socketSeq = 0;
+  let rowsSignature = "";
 
   const latest = computed(() => rows.value.at(-1));
 
@@ -58,7 +59,21 @@ export function useStockDashboard() {
 
   function applyPayload(payload) {
     // Apply a backend payload to UI state.
-    rows.value = payload.rows || [];
+    const nextRows = payload.rows || [];
+    const latestRow = nextRows.at(-1);
+    const nextRowsSignature = [
+      nextRows.length,
+      latestRow?.date || "",
+      latestRow?.open ?? "",
+      latestRow?.close ?? "",
+      latestRow?.high ?? "",
+      latestRow?.low ?? "",
+      latestRow?.volume ?? "",
+    ].join("|");
+    if (nextRowsSignature !== rowsSignature) {
+      rows.value = nextRows;
+      rowsSignature = nextRowsSignature;
+    }
     if (payload.symbol) currentSymbol.value = payload.symbol;
     currentName.value = payload.name || "";
     updatedAt.value = payload.updatedAt || "";

@@ -22,6 +22,7 @@ from backend.utils import (
 
 KLINE_DISPLAY_YEARS = 5
 KLINE_MA_WARMUP_DAYS = 120
+_refresh_locks: dict[str, asyncio.Lock] = {}
 
 
 def years_ago(value: date, years: int) -> date:
@@ -194,21 +195,23 @@ def fetch_kline_sync(symbol: str, name: str | None = None) -> dict[str, Any]:
 async def refresh_symbol(symbol: str) -> dict[str, Any]:
     """Fetch one symbol, cache the payload, and convert failures into payload errors."""
     symbol = normalize_symbol(symbol)
-    name = await store.name(symbol)
-    try:
-        payload = await asyncio.to_thread(fetch_kline_sync, symbol, name)
-    except Exception as exc:
-        payload = {
-            "symbol": symbol,
-            "name": name or "",
-            "updatedAt": datetime.now().isoformat(timespec="seconds"),
-            "source": None,
-            "rows": [],
-            "advice": None,
-            "error": str(exc),
-        }
-    await store.save(symbol, payload)
-    return payload
+    lock = _refresh_locks.setdefault(symbol, asyncio.Lock())
+    async with lock:
+        name = await store.name(symbol)
+        try:
+            payload = await asyncio.to_thread(fetch_kline_sync, symbol, name)
+        except Exception as exc:
+            payload = {
+                "symbol": symbol,
+                "name": name or "",
+                "updatedAt": datetime.now().isoformat(timespec="seconds"),
+                "source": None,
+                "rows": [],
+                "advice": None,
+                "error": str(exc),
+            }
+        await store.save(symbol, payload)
+        return payload
 
 
 async def refresh_loop() -> None:

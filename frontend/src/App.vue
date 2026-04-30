@@ -110,6 +110,7 @@ function toggleCopySelection() {
 
         <KlineChartPanel
           :backtest-result="backtestResult"
+          :current-symbol="currentSymbol"
           :copy-selection-mode="copySelectionMode"
           :copy-start-index="copyStartIndex"
           :error="error"

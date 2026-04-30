@@ -3,33 +3,30 @@
 import { numericValue } from "../utils/formatters";
 import { signalLabel } from "../services/backtest";
 
-const DEFAULT_VISIBLE_MONTHS = 6;
+const DEFAULT_VISIBLE_COUNT = 120;
 const BOLL_WINDOW = 20;
 const BOLL_MULTIPLIER = 2;
 
-function formatLocalDate(date) {
-  // Format a Date with local calendar fields to avoid UTC day shifts.
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
+function defaultZoomRange(dates) {
+  // Show a stable number of recent K-lines instead of a calendar-month window.
+  if (!dates.length) return {};
+  const startIndex = Math.max(dates.length - DEFAULT_VISIBLE_COUNT, 0);
+  return {
+    startValue: dates[startIndex],
+    endValue: dates.at(-1),
+  };
 }
 
-function monthsBefore(dateText, months) {
-  // Return a YYYY-MM-DD date string several calendar months before dateText.
-  const date = new Date(`${dateText}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return null;
-  date.setMonth(date.getMonth() - months);
-  return formatLocalDate(date);
-}
-
-function defaultZoomStartValue(dates) {
-  // Pick the first available trading day inside the default visible window.
-  const latestDate = dates.at(-1);
-  if (!latestDate) return undefined;
-  const cutoff = monthsBefore(latestDate, DEFAULT_VISIBLE_MONTHS);
-  if (!cutoff) return dates[0];
-  return dates.find((date) => date >= cutoff) || dates[0];
+function normalizeZoomRange(dates, zoomRange) {
+  // Keep a user-selected date range only when both endpoints exist in the data.
+  if (!zoomRange?.startValue || !zoomRange?.endValue) return defaultZoomRange(dates);
+  if (!dates.includes(zoomRange.startValue) || !dates.includes(zoomRange.endValue)) {
+    return defaultZoomRange(dates);
+  }
+  return {
+    startValue: zoomRange.startValue,
+    endValue: zoomRange.endValue,
+  };
 }
 
 function calculateBollBands(rows) {
@@ -107,6 +104,7 @@ export function makeKlineChartOption({
   copySelectionMode,
   copyStartIndex,
   backtestResult,
+  zoomRange,
 }) {
   // Build the full ECharts option from K-line rows and dashboard overlays.
   const dates = rows.map((item) => item.date);
@@ -121,7 +119,7 @@ export function makeKlineChartOption({
   const ma60 = rows.map((item) => item.ma60);
   const strategyMarks = backtestMarkPoints(rows, dates, backtestResult);
   const holdingAreas = backtestMarkAreas(dates, backtestResult);
-  const zoomStartValue = defaultZoomStartValue(dates);
+  const activeZoomRange = normalizeZoomRange(dates, zoomRange);
   const bollBands = calculateBollBands(rows);
   const legendData = ["日K", "MA5", "MA20", "MA60", "BOLL上轨", "BOLL下轨"];
 
@@ -185,14 +183,14 @@ export function makeKlineChartOption({
       {
         type: "inside",
         xAxisIndex: [0, 1],
-        startValue: zoomStartValue,
-        end: 100,
+        zoomLock: true,
+        ...activeZoomRange,
       },
       {
         type: "slider",
         xAxisIndex: [0, 1],
-        startValue: zoomStartValue,
-        end: 100,
+        zoomLock: true,
+        ...activeZoomRange,
         bottom: 10,
         height: 22,
       },

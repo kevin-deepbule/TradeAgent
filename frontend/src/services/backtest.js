@@ -140,14 +140,14 @@ function ma20BreakoutAction(data, index, holding) {
   }
 
   const ma20Rising = ma20 > previousMa20;
-  const ma60Rising = ma60 > previousMa60;
+  const ma60NotWeak = ma60 >= previousMa60 * 0.999;
 
   if (!holding) {
-    const validBreakout = close > ma20 * 1.02;
-    return validBreakout && ma60Rising ? "buy" : null;
+    const validBreakout = close > ma20 * 1.02 && close <= ma20 * 1.05;
+    return validBreakout && ma60NotWeak ? "buy" : null;
   }
 
-  const trendBroken = close < ma20 * 0.98 || !ma20Rising;
+  const trendBroken = close < ma20 * 0.98;
   if (trendBroken) return "sell";
 
   const volume = numericValue(row.volume);

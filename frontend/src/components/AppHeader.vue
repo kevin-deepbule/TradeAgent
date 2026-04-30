@@ -14,7 +14,7 @@ defineEmits(["submit-query", "add-watchlist", "toggle-copy-selection"]);
   <header class="topbar">
     <div>
       <h1>A 股 K 线看板</h1>
-      <p>后端每 5 秒刷新 AkShare 数据，前端自动同步最新缓存。</p>
+      <p>后端每 60 秒刷新 AkShare 数据，前端自动同步最新缓存。</p>
     </div>
     <div class="header-actions">
       <form class="symbol-form" @submit.prevent="$emit('submit-query')">

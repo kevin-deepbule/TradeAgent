@@ -33,7 +33,8 @@ Primary AkShare stock documentation:
 Backend:
 
 ```bash
-python3 -m backend.server
+mkdir -p .logs
+python3 -m backend.server 2>&1 | tee .logs/backend.log
 ```
 
 Backend defaults:
@@ -45,14 +46,15 @@ Backend defaults:
 Enable backend reload:
 
 ```bash
-BACKEND_RELOAD=1 python3 -m backend.server
+mkdir -p .logs
+BACKEND_RELOAD=1 python3 -m backend.server 2>&1 | tee .logs/backend.log
 ```
 
 Frontend:
 
 ```bash
-cd frontend
-npm run dev
+mkdir -p .logs
+npm --prefix frontend run dev 2>&1 | tee .logs/frontend.log
 ```
 
 Frontend defaults:
@@ -175,7 +177,7 @@ Available strategies:
 
 - `ma20-cross` / `20日线：站上买入，跌破卖出`: when not holding, close above MA20 signals buy; when holding, close below MA20 signals sell.
 - `volume-drop` / `放量急跌买入，放量卖出`: when not holding, volume above 2x the previous 20-day average and close down at least 4% from the previous close signals buy; when holding, volume above 2x the previous 20-day average signals sell.
-- `ma20-breakout` / `MA20趋势跟随：有效突破`: when not holding, close above `MA20 * 1.02` and MA60 is rising signal buy; when holding, close below `MA20 * 0.98`, MA20 flattening/down, or overheat volume-price stall signals sell.
+- `ma20-breakout` / `MA20趋势跟随：有效突破`: when not holding, close above `MA20 * 1.02`, no higher than `MA20 * 1.05`, and MA60 is at least 99.9% of the previous MA60 signal buy; when holding, close below `MA20 * 0.98` or overheat volume-price stall signals sell.
 - `boll-break-buy` / `BOLL下轨买入，上轨卖出`: when not holding, close crossing below BOLL(20, 2) lower band signals buy; when holding, intraday high crossing above BOLL(20, 2) upper band, holding more than 30 trading days, or close falling more than 20% below the actual entry price signals sell.
 
 Execution assumptions:

@@ -6,6 +6,7 @@ import { useKlineChart } from "../composables/useKlineChart";
 
 const props = defineProps({
   backtestResult: { type: Object, default: null },
+  currentSymbol: { type: String, default: "" },
   copySelectionMode: { type: Boolean, default: false },
   copyStartIndex: { type: Number, default: null },
   error: { type: String, default: "" },
@@ -14,7 +15,8 @@ const props = defineProps({
 
 const emit = defineEmits(["stop-copy-selection", "pick-copy-start", "copy-range"]);
 
-const { rows, copySelectionMode, copyStartIndex, backtestResult } = toRefs(props);
+const { rows, currentSymbol, copySelectionMode, copyStartIndex, backtestResult } =
+  toRefs(props);
 
 const selectionMessage = computed(() => {
   // Explain the current date-range copy step.
@@ -41,6 +43,7 @@ function handleChartClick(params) {
 }
 
 const { chartEl } = useKlineChart({
+  chartKey: currentSymbol,
   rows,
   copySelectionMode,
   copyStartIndex,
