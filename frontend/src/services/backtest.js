@@ -125,12 +125,13 @@ function bollBreakAction(data, index, holding, entry) {
 }
 
 function ma20BreakoutAction(data, index, holding) {
-  // Apply the MA20 breakout, MA60 slope, and overheat take-profit rules.
+  // Apply breakout buys plus trend, MA5 pullback, and overheat sell rules.
   const row = data[index];
   const previous = data[index - 1];
   if (!row || !previous) return null;
 
   const close = numericValue(row.close);
+  const ma5 = numericValue(row.ma5);
   const ma20 = numericValue(row.ma20);
   const ma60 = numericValue(row.ma60);
   const previousMa20 = numericValue(previous.ma20);
@@ -149,6 +150,9 @@ function ma20BreakoutAction(data, index, holding) {
 
   const trendBroken = close < ma20 * 0.98;
   if (trendBroken) return "sell";
+
+  const highPullbackBelowMa5 = ma5 !== null && close < ma5 * 0.995 && close > ma20 * 1.1;
+  if (highPullbackBelowMa5) return "sell";
 
   const volume = numericValue(row.volume);
   const volumeAverage = averagePreviousVolume(data, index);

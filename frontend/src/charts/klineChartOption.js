@@ -6,6 +6,12 @@ import { signalLabel } from "../services/backtest";
 const DEFAULT_VISIBLE_COUNT = 120;
 const BOLL_WINDOW = 20;
 const BOLL_MULTIPLIER = 2;
+const VOLUME_MA_WINDOWS = [5, 20, 60];
+const MOVING_AVERAGE_COLORS = {
+  5: "#2f80ed",
+  20: "#f2994a",
+  60: "#6fcf97",
+};
 
 function defaultZoomRange(dates) {
   // Show a stable number of recent K-lines instead of a calendar-month window.
@@ -60,6 +66,124 @@ function calculateBollBands(rows) {
   });
 
   return { upper, lower };
+}
+
+function calculateVolumeAverage(rows, days) {
+  // Calculate a rolling average volume line for the lower volume chart.
+  const volumes = rows.map((item) => numericValue(item.volume));
+  return volumes.map((volume, index) => {
+    if (volume === null || index < days - 1) return null;
+    const windowVolumes = volumes.slice(index - days + 1, index + 1);
+    if (windowVolumes.some((value) => value === null)) return null;
+    return windowVolumes.reduce((sum, value) => sum + value, 0) / days;
+  });
+}
+
+function formatTooltipNumber(value, digits = 2) {
+  // Format a tooltip number while keeping empty values readable.
+  const number = numericValue(value);
+  return number === null ? "--" : number.toFixed(digits);
+}
+
+function formatTooltipVolume(value) {
+  // Format chart volume without forcing decimal noise into the tooltip.
+  const number = numericValue(value);
+  return number === null ? "--" : number.toLocaleString("zh-CN");
+}
+
+function ratioInfo(value, base) {
+  // Return display text and status color for a value/base ratio.
+  const number = numericValue(value);
+  const baseNumber = numericValue(base);
+  if (number === null || baseNumber === null || baseNumber <= 0) {
+    return {
+      percent: "--",
+      relation: "数据不足",
+      color: "#667085",
+      background: "#f2f4f7",
+    };
+  }
+  const percent = (number / baseNumber) * 100;
+  const gap = percent - 100;
+  if (Math.abs(gap) < 0.005) {
+    return {
+      percent: `${percent.toFixed(2)}%`,
+      relation: "持平",
+      color: "#667085",
+      background: "#f2f4f7",
+    };
+  }
+  const isAbove = gap > 0;
+  return {
+    percent: `${percent.toFixed(2)}%`,
+    relation: `${isAbove ? "高于" : "低于"} ${Math.abs(gap).toFixed(2)}%`,
+    color: isAbove ? "#c43836" : "#16865d",
+    background: isAbove ? "#fff1f0" : "#ecfdf3",
+  };
+}
+
+function tooltipPriceCell(label, value, formatter = formatTooltipNumber) {
+  // Render a compact label/value cell for OHLC data.
+  return `
+    <div style="display:grid;gap:1px;">
+      <span style="color:#667085;font-size:10px;">${label}</span>
+      <strong style="color:#182230;font-size:12px;font-weight:700;overflow-wrap:anywhere;">${formatter(value)}</strong>
+    </div>
+  `;
+}
+
+function tooltipMetric(label, info) {
+  // Render a ratio metric with a colored status badge.
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <span style="color:#475467;font-size:11px;">${label}</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;min-width:108px;justify-content:flex-end;">
+        <strong style="color:${info.color};font-size:11px;font-weight:750;">${info.percent}</strong>
+        <span style="border-radius:999px;background:${info.background};color:${info.color};padding:1px 5px;font-size:10px;line-height:1.35;">${info.relation}</span>
+      </span>
+    </div>
+  `;
+}
+
+function makeTooltipFormatter(rows, volumeAverages) {
+  // Build the hover card content from the row data backing the chart point.
+  return (params) => {
+    const firstParam = Array.isArray(params) ? params[0] : params;
+    const index = firstParam?.dataIndex;
+    const row = rows[index];
+    if (!row) return "";
+    const closeMa5 = ratioInfo(row.close, row.ma5);
+    const closeMa20 = ratioInfo(row.close, row.ma20);
+    const closeMa60 = ratioInfo(row.close, row.ma60);
+    const volumeMa20 = ratioInfo(row.volume, volumeAverages[index]);
+
+    return `
+      <div style="min-width:224px;color:#182230;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:7px;">
+          <div>
+            <div style="color:#667085;font-size:10px;line-height:1.25;">交易日</div>
+            <div style="font-size:12px;font-weight:750;line-height:1.4;">${row.date}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="color:#667085;font-size:10px;line-height:1.25;">收盘</div>
+            <div style="color:${closeMa20.color};font-size:16px;font-weight:800;line-height:1.1;">${formatTooltipNumber(row.close)}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px;border-top:1px solid rgba(238,242,246,0.85);border-bottom:1px solid rgba(238,242,246,0.85);padding:7px 0;margin-bottom:7px;">
+          ${tooltipPriceCell("开盘", row.open)}
+          ${tooltipPriceCell("最高", row.high)}
+          ${tooltipPriceCell("最低", row.low)}
+          ${tooltipPriceCell("成交量", row.volume, formatTooltipVolume)}
+        </div>
+        <div style="display:grid;gap:5px;">
+          ${tooltipMetric("收盘 / MA5", closeMa5)}
+          ${tooltipMetric("收盘 / MA20", closeMa20)}
+          ${tooltipMetric("收盘 / MA60", closeMa60)}
+          ${tooltipMetric("量能 / 20日均量", volumeMa20)}
+        </div>
+      </div>
+    `;
+  };
 }
 
 function backtestMarkPoints(rows, dates, backtestResult) {
@@ -121,7 +245,21 @@ export function makeKlineChartOption({
   const holdingAreas = backtestMarkAreas(dates, backtestResult);
   const activeZoomRange = normalizeZoomRange(dates, zoomRange);
   const bollBands = calculateBollBands(rows);
-  const legendData = ["日K", "MA5", "MA20", "MA60", "BOLL上轨", "BOLL下轨"];
+  const volumeAverages = Object.fromEntries(
+    VOLUME_MA_WINDOWS.map((days) => [days, calculateVolumeAverage(rows, days)]),
+  );
+  const legendData = [
+    "日K",
+    "MA5",
+    "MA20",
+    "MA60",
+    "BOLL上轨",
+    "BOLL下轨",
+    "成交量",
+    "量MA5",
+    "量MA20",
+    "量MA60",
+  ];
 
   return {
     animation: false,
@@ -129,8 +267,24 @@ export function makeKlineChartOption({
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "cross" },
+      confine: true,
+      backgroundColor: "rgba(255, 255, 255, 0.72)",
+      borderColor: "#dce2ea",
       borderWidth: 1,
-      textStyle: { fontSize: 12 },
+      borderRadius: 8,
+      padding: [8, 10],
+      extraCssText:
+        "box-shadow:0 6px 18px rgba(16,24,40,0.08);backdrop-filter:blur(4px);",
+      textStyle: {
+        color: "#182230",
+        fontFamily:
+          'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        fontSize: 12,
+      },
+      formatter: makeTooltipFormatter(rows, volumeAverages[20]),
+    },
+    axisPointer: {
+      link: [{ xAxisIndex: [0, 1] }],
     },
     legend: {
       type: "scroll",
@@ -163,6 +317,12 @@ export function makeKlineChartOption({
         axisLabel: { show: false },
         axisTick: { show: false },
         axisLine: { lineStyle: { color: "#d6dbe3" } },
+        axisPointer: {
+          show: true,
+          type: "shadow",
+          shadowStyle: { color: "rgba(25,95,201,0.12)" },
+          label: { show: false },
+        },
       },
     ],
     yAxis: [
@@ -236,7 +396,7 @@ export function makeKlineChartOption({
         data: ma5,
         smooth: true,
         showSymbol: false,
-        lineStyle: { width: 1.5 },
+        lineStyle: { width: 1.5, color: MOVING_AVERAGE_COLORS[5] },
       },
       {
         name: "MA20",
@@ -244,7 +404,7 @@ export function makeKlineChartOption({
         data: ma20,
         smooth: true,
         showSymbol: false,
-        lineStyle: { width: 1.5 },
+        lineStyle: { width: 1.5, color: MOVING_AVERAGE_COLORS[20] },
       },
       {
         name: "MA60",
@@ -252,7 +412,7 @@ export function makeKlineChartOption({
         data: ma60,
         smooth: true,
         showSymbol: false,
-        lineStyle: { width: 1.5 },
+        lineStyle: { width: 1.5, color: MOVING_AVERAGE_COLORS[60] },
       },
       {
         name: "BOLL上轨",
@@ -276,7 +436,56 @@ export function makeKlineChartOption({
         xAxisIndex: 1,
         yAxisIndex: 1,
         data: rows.map((item) => item.volume),
-        itemStyle: { color: "#9aa4b2" },
+        itemStyle: {
+          color: (params) => {
+            const row = rows[params.dataIndex];
+            const open = numericValue(row?.open);
+            const close = numericValue(row?.close);
+            if (open === null || close === null) return "#9aa4b2";
+            return close >= open ? "rgba(214,69,69,0.72)" : "rgba(26,155,104,0.72)";
+          },
+        },
+        emphasis: {
+          itemStyle: {
+            color: (params) => {
+              const row = rows[params.dataIndex];
+              const open = numericValue(row?.open);
+              const close = numericValue(row?.close);
+              if (open === null || close === null) return "#667085";
+              return close >= open ? "#c43836" : "#16865d";
+            },
+          },
+        },
+      },
+      {
+        name: "量MA5",
+        type: "line",
+        xAxisIndex: 1,
+        yAxisIndex: 1,
+        data: volumeAverages[5],
+        smooth: true,
+        showSymbol: false,
+        lineStyle: { width: 1.25, color: MOVING_AVERAGE_COLORS[5] },
+      },
+      {
+        name: "量MA20",
+        type: "line",
+        xAxisIndex: 1,
+        yAxisIndex: 1,
+        data: volumeAverages[20],
+        smooth: true,
+        showSymbol: false,
+        lineStyle: { width: 1.35, color: MOVING_AVERAGE_COLORS[20] },
+      },
+      {
+        name: "量MA60",
+        type: "line",
+        xAxisIndex: 1,
+        yAxisIndex: 1,
+        data: volumeAverages[60],
+        smooth: true,
+        showSymbol: false,
+        lineStyle: { width: 1.35, color: MOVING_AVERAGE_COLORS[60] },
       },
     ],
   };
