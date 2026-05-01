@@ -292,6 +292,46 @@ select {
   box-shadow: inset 0 0 0 2px rgba(25, 95, 201, 0.28);
 }
 
+.manual-trade-tools {
+  position: absolute;
+  z-index: 3;
+  right: 18px;
+  bottom: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(520px, calc(100% - 36px));
+  border: 1px solid #cfe8fb;
+  border-radius: 6px;
+  background: #eef8ff;
+  color: #31546b;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.manual-trade-status {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manual-trade-clear {
+  height: 24px;
+  flex: 0 0 auto;
+  border: 1px solid #b8e6ce;
+  border-radius: 5px;
+  background: #edfdf4;
+  color: #28724f;
+  padding: 0 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.manual-trade-clear:hover {
+  background: #dcf8e8;
+}
+
 .advice-panel {
   grid-area: advice;
   margin-top: 0;

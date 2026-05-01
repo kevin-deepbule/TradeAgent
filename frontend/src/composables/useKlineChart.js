@@ -11,6 +11,7 @@ export function useKlineChart({
   copyStartIndex,
   selectedKlineIndex,
   backtestResult,
+  manualTradeResult,
   onChartClick,
 }) {
   // Create, update, resize, and dispose the K-line chart instance.
@@ -154,6 +155,7 @@ export function useKlineChart({
         copyStartIndex: copyStartIndex.value,
         selectedKlineIndex: selectedKlineIndex.value,
         backtestResult: backtestResult.value,
+        manualTradeResult: manualTradeResult.value,
         zoomRange,
       }),
       true,
@@ -169,7 +171,14 @@ export function useKlineChart({
   }
 
   watch(
-    [rows, copySelectionMode, copyStartIndex, selectedKlineIndex, backtestResult],
+    [
+      rows,
+      copySelectionMode,
+      copyStartIndex,
+      selectedKlineIndex,
+      backtestResult,
+      manualTradeResult,
+    ],
     scheduleRender,
     {
       deep: true,

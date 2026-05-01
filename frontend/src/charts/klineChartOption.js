@@ -315,6 +315,7 @@ export function makeKlineChartOption({
   copyStartIndex,
   selectedKlineIndex,
   backtestResult,
+  manualTradeResult,
   zoomRange,
 }) {
   // Build the full ECharts option from K-line rows and dashboard overlays.
@@ -327,9 +328,16 @@ export function makeKlineChartOption({
   const ma5 = rows.map((item) => item.ma5);
   const ma20 = rows.map((item) => item.ma20);
   const ma60 = rows.map((item) => item.ma60);
-  const strategyMarks = backtestMarkPoints(rows, dates, backtestResult);
-  const tradeReturnMarks = tradeReturnMarkPoints(dates, backtestResult);
-  const holdingAreas = backtestMarkAreas(dates, backtestResult);
+  const overlayResults = [backtestResult, manualTradeResult].filter(Boolean);
+  const strategyMarks = overlayResults.flatMap((result) =>
+    backtestMarkPoints(rows, dates, result),
+  );
+  const tradeReturnMarks = overlayResults.flatMap((result) =>
+    tradeReturnMarkPoints(dates, result),
+  );
+  const holdingAreas = overlayResults.flatMap((result) =>
+    backtestMarkAreas(dates, result),
+  );
   const selectedLines = selectedMarkLine(dates, activeSelectedIndex);
   const activeZoomRange = normalizeZoomRange(dates, zoomRange);
   const bollBands = calculateBollBands(rows);
@@ -431,16 +439,28 @@ export function makeKlineChartOption({
       {
         type: "inside",
         xAxisIndex: [0, 1],
-        zoomLock: true,
+        zoomLock: false,
         ...activeZoomRange,
       },
       {
         type: "slider",
         xAxisIndex: [0, 1],
-        zoomLock: true,
+        zoomLock: false,
+        brushSelect: false,
         ...activeZoomRange,
         bottom: 10,
-        height: 22,
+        height: 26,
+        handleSize: "88%",
+        moveHandleSize: 8,
+        fillerColor: "rgba(25, 95, 201, 0.14)",
+        handleStyle: {
+          color: "#eef8ff",
+          borderColor: "#9bd0f5",
+        },
+        moveHandleStyle: {
+          color: "#edfdf4",
+          borderColor: "#9fdcb8",
+        },
       },
     ],
     series: [
