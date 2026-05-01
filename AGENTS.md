@@ -6,9 +6,9 @@ Primary documentation:
 - https://akshare.akfamily.xyz/data/stock/stock.html
 
 When implementing stock data features:
-- Prefer `akshare` Python APIs over hand-written scraping.
-- Check the AkShare documentation for the exact function name and parameters before using an API.
-- Keep data-fetching code small and explicit, because AkShare upstream interfaces can change.
+- Prefer `akshare` Python APIs in `akshare_adapter/` over hand-written scraping.
+- Check the AkShare documentation for exact function names and parameters before using an API.
+- Keep data-fetching code small and explicit because AkShare upstream interfaces can change.
 - Return or persist `pandas.DataFrame` values without changing column names unless the caller asks for normalized fields.
 - For A-share historical quotes, start with `ak.stock_zh_a_hist`.
 - For A-share realtime spot quotes, start with `ak.stock_zh_a_spot_em`.
@@ -17,24 +17,29 @@ When implementing stock data features:
 
 ## Project Overview
 
-This project is a Python + Vue A-share K-line dashboard.
+This project is a Java + Vue A-share K-line dashboard with a small Python AkShare adapter.
 
-- Backend: FastAPI + AkShare + SQLite
+- Backend: Spring Boot + SQLite
+- Adapter: FastAPI + AkShare + pandas
 - Frontend: Vue 3 + Vite + ECharts
 - Data source: AkShare
 - Database: `backend/data/watchlist.db`
 
-Primary AkShare stock documentation:
-
-- https://akshare.akfamily.xyz/data/stock/stock.html
-
 ## Run Commands
+
+AkShare adapter:
+
+```bash
+mkdir -p .logs
+source .venv/bin/activate
+python3 -m akshare_adapter.server 2>&1 | tee .logs/akshare-adapter.log
+```
 
 Backend:
 
 ```bash
 mkdir -p .logs
-python3 -m backend.server 2>&1 | tee .logs/backend.log
+mvn -f backend/pom.xml spring-boot:run 2>&1 | tee .logs/backend.log
 ```
 
 Backend defaults:
@@ -42,13 +47,7 @@ Backend defaults:
 - Host: `0.0.0.0`
 - Port: `8001`
 - Health: `http://localhost:8001/api/health`
-
-Enable backend reload:
-
-```bash
-mkdir -p .logs
-BACKEND_RELOAD=1 python3 -m backend.server 2>&1 | tee .logs/backend.log
-```
+- AkShare adapter base: `http://localhost:8002`
 
 Frontend:
 
@@ -65,10 +64,16 @@ Frontend defaults:
 
 ## Verification
 
+Adapter compile check:
+
+```bash
+python3 -m py_compile $(find akshare_adapter -name '*.py' -print)
+```
+
 Backend compile check:
 
 ```bash
-python3 -m py_compile $(find backend -name '*.py' -print)
+mvn -f backend/pom.xml test
 ```
 
 Frontend build check:
@@ -80,41 +85,41 @@ npm --prefix frontend run build
 API smoke checks:
 
 ```bash
-curl http://localhost:8001/api/health
-curl http://localhost:8001/api/watchlist
-curl http://localhost:8001/api/stocks/000001/kline
+curl --noproxy '*' http://localhost:8002/internal/health
+curl --noproxy '*' http://localhost:8001/api/health
+curl --noproxy '*' http://localhost:8001/api/watchlist
+curl --noproxy '*' http://localhost:8001/api/stocks/000001/kline
 ```
 
 ## Backend Structure
 
-- `backend/main.py`: FastAPI app factory, CORS, lifespan, router mounting.
-- `backend/server.py`: Project-level uvicorn entrypoint with fixed port config.
-- `backend/config.py`: Environment variables, paths, host, port, refresh interval.
-- `backend/database.py`: SQLite connection setup.
-- `backend/api/`: FastAPI routers split by resource.
-- `backend/repositories/`: Persistence layer, currently watchlist SQLite operations.
-- `backend/services/`: Business logic, AkShare fetching, cache, trade advice.
-- `backend/utils.py`: Shared stock-symbol, text, market, and NaN helpers.
+- `backend/pom.xml`: Maven build for the Spring Boot backend.
+- `backend/src/main/java/com/tradeagent/TradeAgentApplication.java`: backend entrypoint.
+- `backend/src/main/java/com/tradeagent/config/`: backend configuration, CORS, datasource, HTTP client.
+- `backend/src/main/java/com/tradeagent/controller/`: REST API controllers.
+- `backend/src/main/java/com/tradeagent/websocket/`: stock WebSocket endpoint.
+- `backend/src/main/java/com/tradeagent/repository/`: SQLite persistence layer.
+- `backend/src/main/java/com/tradeagent/service/`: stock workflow, cache, startup initialization, trade advice.
+- `backend/src/main/java/com/tradeagent/client/`: local AkShare adapter client.
+- `backend/src/main/java/com/tradeagent/dto/`: API payload DTOs.
+- `backend/src/main/resources/application.properties`: environment-derived runtime defaults.
+
+## AkShare Adapter Structure
+
+- `akshare_adapter/server.py`: uvicorn entrypoint for the internal adapter.
+- `akshare_adapter/main.py`: FastAPI app and internal routes.
+- `akshare_adapter/stock_adapter.py`: AkShare calls, symbol resolution, K-line shaping.
+- `akshare_adapter/config.py`: adapter host, port, and K-line window settings.
+- `akshare_adapter/utils.py`: stock-symbol, text, market, date, and NaN helpers.
 
 ## Frontend Structure
 
 - `frontend/src/App.vue`: Dashboard shell that wires composables and presentational panels.
 - `frontend/src/main.js`: Vue app bootstrap and global error reporting.
 - `frontend/src/components/`: Presentational Vue panels.
-  - `AppHeader.vue`: Query form, add-watchlist button, and copy-mode toggle.
-  - `WatchlistPanel.vue`: Persisted watchlist display and item actions.
-  - `SummaryCards.vue`: Current stock, close, change, update time, and status.
-  - `KlineChartPanel.vue`: ECharts container plus copy-range interaction overlay.
-  - `BacktestPanel.vue`: Strategy selection, metrics, and executed signal list.
-  - `AdvicePanel.vue`: Backend-generated trade advice display.
 - `frontend/src/composables/`: Vue state/lifecycle modules.
-  - `useStockDashboard.js`: Query state, WebSocket data flow, watchlist API calls, and copy-to-clipboard workflow.
-  - `useBacktest.js`: Selected strategy state and automatic result refresh.
-  - `useKlineChart.js`: ECharts instance lifecycle and redraw scheduling.
-- `frontend/src/services/`: Side-effect and pure-domain services.
-  - `stockApi.js`: Thin wrappers around `/api/watchlist` and `/api/stocks/{query}/kline`.
-  - `backtest.js`: Pure strategy rules, next-open execution, limit-up/down handling, return and drawdown calculation.
-- `frontend/src/charts/klineChartOption.js`: ECharts option builder for candlestick, MA lines, volume, buy/sell markers, and holding bands.
+- `frontend/src/services/`: API wrappers and pure-domain services.
+- `frontend/src/charts/klineChartOption.js`: ECharts option builder.
 - `frontend/src/utils/formatters.js`: Numeric, percent, and clipboard export formatting helpers.
 - `frontend/src/config.js`: Vite environment-derived API/WebSocket bases.
 - `frontend/src/style.css`: Global dashboard styling.
@@ -127,17 +132,6 @@ curl http://localhost:8001/api/stocks/000001/kline
 - Keep ECharts option shape in `frontend/src/charts/klineChartOption.js`; components should not inline chart option objects.
 - Keep display-only UI in `frontend/src/components/`; components should receive data through props and emit user intents.
 - The global stylesheet currently owns dashboard layout and panel styling. Reuse existing class names before adding new visual systems.
-
-## Stock Data Rules
-
-When implementing stock data features:
-
-- Prefer `akshare` Python APIs over hand-written scraping.
-- Check the AkShare documentation for exact function names and parameters before using an API.
-- Keep data-fetching code small and explicit because AkShare upstream interfaces can change.
-- Return or persist `pandas.DataFrame` values without changing column names unless the caller asks for normalized fields.
-- For A-share historical quotes, start with `ak.stock_zh_a_hist`.
-- For A-share realtime spot quotes, start with `ak.stock_zh_a_spot_em`.
 
 ## Current API Surface
 
@@ -172,7 +166,7 @@ The K-line response includes:
 
 ## Strategy Backtest Rules
 
-The strategy backtest is currently frontend-only and uses the K-line `rows` already returned by the backend. It does not call a separate backtest API.
+The strategy backtest is frontend-only and uses the K-line `rows` returned by the backend.
 The backend returns the most recent 5 calendar years of daily K-line rows, so the backtest window follows that returned data range.
 
 Available strategies:
@@ -195,15 +189,16 @@ Execution assumptions:
 ## Development Notes
 
 - Keep backend route paths stable because the frontend calls them directly.
-- Keep `uvicorn backend.main:app` compatibility through the exported `app`, even though `python3 -m backend.server` is the preferred command.
+- Keep `backend/data/watchlist.db` out of git; it is local runtime state.
+- Keep AkShare access isolated in `akshare_adapter/`; Java should call the adapter instead of reimplementing AkShare scraping.
 - The frontend Vite dev port uses `strictPort`; if `5173` is occupied, fix the process conflict instead of silently changing ports.
 - The backend default port is `8001` because `8000` is unavailable in the current environment.
-- Do not commit generated caches, `node_modules`, `dist`, `.venv`, or database files.
+- Do not commit generated caches, `node_modules`, `dist`, `.venv`, Maven `target`, or database files.
 
 ## Comment Requirements
 
-- Every source file must include a brief file-level comment describing the file's responsibility.
-- Every function must include a short comment or docstring explaining what the function does.
+- Every source file must include a brief file-level or class-level comment describing the file's responsibility.
+- Every function or public method must include a short comment or docstring explaining what it does.
 - Keep comments concise and useful; avoid restating obvious implementation details.
 - Prefer comments that explain intent, boundaries, assumptions, or non-obvious behavior.
 - When changing an existing file, add or update comments for touched functions if they are missing or stale.

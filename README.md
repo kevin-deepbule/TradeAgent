@@ -1,34 +1,101 @@
 # Stock Analyst
 
-Python + Vue stock K-line dashboard powered by AkShare.
+Java + Vue stock K-line dashboard powered by a small Python AkShare adapter.
 
 ## Features
 
-- FastAPI backend fetches A-share daily K-line data from AkShare every 5 seconds.
+- Spring Boot backend serves the dashboard REST API and WebSocket paths.
+- A small internal Python adapter fetches A-share data from AkShare.
 - Query by A-share stock code or stock name, such as `000001` or `平安银行`.
 - Backend calculates MA5, MA20, and MA60 from closing prices.
 - Vue frontend renders candlestick, moving-average lines, and volume with ECharts.
-- Double-clicking the active chart guide line selects that K-line and its volume bar, then left/right arrow keys move the selection.
-- With a K-line selected, press `B` to buy at the next trading day's open and `S` to sell at the next trading day's open, with chart P/L overlays.
-- WebSocket pushes the cached backend payload to the frontend every 5 seconds.
-- One-click copy exports date, OHLC, volume, MA5, MA20, and MA60 as tab-separated text.
-- Watchlist persistence is backed by SQLite at `backend/data/watchlist.db`.
-- The dashboard default stock can be changed from the current stock and is persisted in SQLite.
-- Strategy backtesting runs in the frontend against the current K-line rows, with buy/sell markers, per-trade return labels, and yellow holding bands drawn on the chart.
+- Watchlist and default stock persistence use SQLite at `backend/data/watchlist.db`.
+- Strategy backtesting runs in the frontend against the returned K-line rows.
 
-## Frontend Structure
+## Structure
 
-The Vue app is intentionally split by responsibility:
+- `backend/`: Spring Boot backend, SQLite repositories, WebSocket handler, advice service.
+- `akshare_adapter/`: internal FastAPI service that wraps AkShare calls.
+- `frontend/`: Vue 3 + Vite + ECharts dashboard.
 
-- `frontend/src/App.vue`: page shell and cross-panel wiring.
-- `frontend/src/main.js`: Vue app creation and global error reporting.
-- `frontend/src/components/`: presentational panels for header, watchlist, summary, chart, backtest, and advice.
-- `frontend/src/composables/`: Vue state/lifecycle modules for stock data, backtesting, and ECharts.
-- `frontend/src/services/`: API wrappers and pure backtest calculations.
-- `frontend/src/charts/`: ECharts option builders.
-- `frontend/src/utils/`: shared formatting and numeric helpers.
-- `frontend/src/config.js`: Vite environment-derived API/WebSocket bases.
-- `frontend/src/style.css`: global dashboard styling.
+The frontend still talks to the same public API surface:
+
+- `GET /api/health`
+- `GET /api/default-stock`
+- `PUT /api/default-stock`
+- `GET /api/watchlist`
+- `POST /api/watchlist`
+- `DELETE /api/watchlist/{symbol}`
+- `GET /api/stocks/{query}/kline`
+- `WS /ws/stocks/{query}`
+
+## Run AkShare Adapter
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+mkdir -p .logs
+python3 -m akshare_adapter.server 2>&1 | tee .logs/akshare-adapter.log
+```
+
+Defaults:
+
+- Host: `127.0.0.1`
+- Port: `8002`
+- Health: `http://localhost:8002/internal/health`
+
+## Run Backend
+
+Requires JDK 17+ and Maven.
+
+```bash
+mkdir -p .logs
+mvn -f backend/pom.xml spring-boot:run 2>&1 | tee .logs/backend.log
+```
+
+Defaults:
+
+- Host: `0.0.0.0`
+- Port: `8001`
+- Adapter base: `http://localhost:8002`
+- SQLite: `backend/data/watchlist.db`
+
+You can also run the packaged jar after building:
+
+```bash
+mvn -f backend/pom.xml package
+java -jar backend/target/trade-agent-backend-0.1.0.jar
+```
+
+## Run Frontend
+
+```bash
+npm --prefix frontend install
+mkdir -p .logs
+npm --prefix frontend run dev 2>&1 | tee .logs/frontend.log
+```
+
+Frontend defaults:
+
+- API: `http://localhost:8001`
+- WebSocket: `ws://localhost:8001`
+- Dev server: `http://localhost:5173`
+
+## Verification
+
+Because this environment may have proxy variables set, local curl checks can use
+`--noproxy '*'`.
+
+```bash
+python3 -m py_compile $(find akshare_adapter -name '*.py' -print)
+mvn -f backend/pom.xml test
+npm --prefix frontend run build
+curl --noproxy '*' http://localhost:8002/internal/health
+curl --noproxy '*' http://localhost:8001/api/health
+curl --noproxy '*' http://localhost:8001/api/watchlist
+curl --noproxy '*' http://localhost:8001/api/stocks/000001/kline
+```
 
 ## Backtest Rules
 
@@ -44,77 +111,9 @@ Current strategies:
 
 Execution model:
 
-- Signals are generated from completed K-line rows after the signal day's close, even when a condition uses intraday high/low.
-- Every strategy uses the shared frontend backtest execution engine; strategy rules only create `buy`/`sell` signals.
+- Signals are generated from completed K-line rows after the signal day's close.
+- Every strategy uses the shared frontend backtest execution engine.
 - Buy and sell executions always happen at the next trading day's open price.
 - Limit-up opens cannot be bought; blocked buy orders are skipped.
-- Limit-down opens cannot be sold; blocked sell orders remain pending until the next tradable open.
+- Limit-down opens cannot be sold; blocked sell orders remain pending.
 - Chart markers represent actual execution dates/prices, not signal dates.
-- K-line return labels show each completed trade's gain/loss rate, and show floating gain/loss for an open position at the latest K-line.
-
-## Run Backend
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install -r requirements.txt
-mkdir -p .logs
-python3 -m backend.server 2>&1 | tee .logs/backend.log
-```
-
-The backend port is fixed in project config:
-
-- Host: `0.0.0.0`
-- Port: `8001`
-
-For backend hot reload during development:
-
-```bash
-mkdir -p .logs
-BACKEND_RELOAD=1 python3 -m backend.server 2>&1 | tee .logs/backend.log
-```
-
-If `python3 -m venv .venv` reports that `ensurepip` is unavailable on Ubuntu or
-Debian, install the system packages first:
-
-```bash
-sudo apt-get install python3-pip python3-venv
-```
-
-Backend API:
-
-- `GET http://localhost:8001/api/default-stock`
-- `PUT http://localhost:8001/api/default-stock`
-- `GET http://localhost:8001/api/stocks/000001/kline`
-- `WS ws://localhost:8001/ws/stocks/000001`
-
-## Run Frontend
-
-```bash
-npm --prefix frontend install
-mkdir -p .logs
-npm --prefix frontend run dev 2>&1 | tee .logs/frontend.log
-```
-
-Frontend defaults to:
-
-- API: `http://localhost:8001`
-- WebSocket: `ws://localhost:8001`
-- Dev server: `http://localhost:5173`
-
-You can override them with:
-
-```bash
-mkdir -p .logs
-VITE_API_BASE=http://localhost:8001 VITE_WS_BASE=ws://localhost:8001 npm --prefix frontend run dev 2>&1 | tee .logs/frontend.log
-```
-
-## Verification
-
-```bash
-python3 -m py_compile $(find backend -name '*.py' -print)
-npm --prefix frontend run build
-curl http://localhost:8001/api/health
-curl http://localhost:8001/api/watchlist
-curl http://localhost:8001/api/stocks/000001/kline
-```
