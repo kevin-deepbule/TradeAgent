@@ -284,7 +284,9 @@ export function calculateBacktest(data, strategyId, stock = {}) {
           });
           trades.push({
             entryDate: entry.date,
+            entryIndex: entry.index,
             exitDate: row.date,
+            exitIndex: index,
             entryPrice: entry.price,
             exitPrice: openPrice,
             returnPct: ((openPrice - entry.price) / entry.price) * 100,
@@ -329,7 +331,9 @@ export function calculateBacktest(data, strategyId, stock = {}) {
     if (entry && lastPrice !== null && lastPrice > 0) {
       trades.push({
         entryDate: entry.date,
+        entryIndex: entry.index,
         exitDate: lastRow?.date,
+        exitIndex: data.length - 1,
         entryPrice: entry.price,
         exitPrice: lastPrice,
         returnPct: ((lastPrice - entry.price) / entry.price) * 100,

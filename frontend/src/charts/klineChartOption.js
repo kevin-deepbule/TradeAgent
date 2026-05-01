@@ -1,6 +1,6 @@
 // ECharts option builder for K-line, volume, moving averages, and backtest overlays.
 
-import { numericValue } from "../utils/formatters";
+import { formatSignedPercent, numericValue } from "../utils/formatters";
 import { signalLabel } from "../services/backtest";
 
 const DEFAULT_VISIBLE_COUNT = 120;
@@ -211,6 +211,42 @@ function backtestMarkPoints(rows, dates, backtestResult) {
     .filter(Boolean);
 }
 
+function tradeReturnMarkPoints(dates, backtestResult) {
+  // Convert each executed trade into a compact return label at its exit point.
+  return (backtestResult?.trades || [])
+    .map((trade) => {
+      const exitIndex = trade.exitIndex;
+      const exitDate = dates[exitIndex];
+      const exitPrice = numericValue(trade.exitPrice);
+      const returnPct = numericValue(trade.returnPct);
+      if (!exitDate || exitPrice === null || returnPct === null) return null;
+
+      const isProfit = returnPct >= 0;
+      return {
+        name: trade.isOpen ? "浮动盈亏率" : "交易盈亏率",
+        coord: [exitDate, exitPrice],
+        value: `${trade.isOpen ? "浮 " : ""}${formatSignedPercent(returnPct)}`,
+        symbol: "roundRect",
+        symbolSize: trade.isOpen ? [76, 24] : [64, 24],
+        symbolOffset: [0, -58],
+        itemStyle: {
+          color: isProfit ? "#c43836" : "#16865d",
+          borderColor: "#ffffff",
+          borderWidth: 1.5,
+          shadowBlur: 7,
+          shadowColor: "rgba(16,24,40,0.18)",
+        },
+        label: {
+          color: "#ffffff",
+          fontSize: 10,
+          fontWeight: 750,
+          formatter: "{c}",
+        },
+      };
+    })
+    .filter(Boolean);
+}
+
 function backtestMarkAreas(dates, backtestResult) {
   // Convert holding ranges into yellow chart background bands.
   return (backtestResult?.holdingRanges || [])
@@ -242,6 +278,7 @@ export function makeKlineChartOption({
   const ma20 = rows.map((item) => item.ma20);
   const ma60 = rows.map((item) => item.ma60);
   const strategyMarks = backtestMarkPoints(rows, dates, backtestResult);
+  const tradeReturnMarks = tradeReturnMarkPoints(dates, backtestResult);
   const holdingAreas = backtestMarkAreas(dates, backtestResult);
   const activeZoomRange = normalizeZoomRange(dates, zoomRange);
   const bollBands = calculateBollBands(rows);
@@ -375,7 +412,7 @@ export function makeKlineChartOption({
               : [],
         },
         markPoint: {
-          data: strategyMarks,
+          data: [...strategyMarks, ...tradeReturnMarks],
         },
         markArea: {
           silent: true,

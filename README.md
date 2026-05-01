@@ -11,7 +11,7 @@ Python + Vue stock K-line dashboard powered by AkShare.
 - WebSocket pushes the cached backend payload to the frontend every 5 seconds.
 - One-click copy exports date, OHLC, volume, MA5, MA20, and MA60 as tab-separated text.
 - Watchlist persistence is backed by SQLite at `backend/data/watchlist.db`.
-- Strategy backtesting runs in the frontend against the current K-line rows, with buy/sell markers and yellow holding bands drawn on the chart.
+- Strategy backtesting runs in the frontend against the current K-line rows, with buy/sell markers, per-trade return labels, and yellow holding bands drawn on the chart.
 
 ## Frontend Structure
 
@@ -47,6 +47,7 @@ Execution model:
 - Limit-up opens cannot be bought; blocked buy orders are skipped.
 - Limit-down opens cannot be sold; blocked sell orders remain pending until the next tradable open.
 - Chart markers represent actual execution dates/prices, not signal dates.
+- K-line return labels show each completed trade's gain/loss rate, and show floating gain/loss for an open position at the latest K-line.
 
 ## Run Backend
 
