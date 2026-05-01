@@ -439,6 +439,7 @@ export function makeKlineChartOption({
       {
         type: "inside",
         xAxisIndex: [0, 1],
+        disabled: true,
         zoomLock: false,
         ...activeZoomRange,
       },

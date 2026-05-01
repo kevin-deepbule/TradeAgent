@@ -67,12 +67,30 @@ const manualTradeResult = computed(() => {
   };
 });
 
+const manualTotalReturn = computed(() => {
+  // Compound all completed manual trades plus the current open trade.
+  const trades = manualOpenTrade.value
+    ? [...manualTrades.value, manualOpenTrade.value]
+    : manualTrades.value;
+  if (!trades.length) return null;
+  const equity = trades.reduce(
+    (value, trade) => value * (1 + trade.returnPct / 100),
+    1,
+  );
+  return (equity - 1) * 100;
+});
+
 const manualTradeDisplayStatus = computed(() => {
   // Show current manual trade state without requiring a separate panel.
+  const totalReturnText =
+    manualTotalReturn.value === null
+      ? ""
+      : `，累计盈亏 ${formatSignedPercent(manualTotalReturn.value)}`;
   const openTrade = manualOpenTrade.value;
   if (openTrade) {
-    return `持仓中 ${openTrade.entryDate} 买入 ${openTrade.entryPrice.toFixed(2)}，浮动盈亏 ${formatSignedPercent(openTrade.returnPct)}`;
+    return `持仓中 ${openTrade.entryDate} 买入 ${openTrade.entryPrice.toFixed(2)}，当前盈亏 ${formatSignedPercent(openTrade.returnPct)}${totalReturnText}`;
   }
+  if (manualTrades.value.length) return `手动交易 ${manualTrades.value.length} 笔${totalReturnText}`;
   return manualTradeStatus.value;
 });
 
@@ -226,7 +244,12 @@ function sellNextOpen() {
     { startIndex: entry.index, endIndex: execution.index },
   ];
   manualEntry.value = null;
-  manualTradeStatus.value = `卖出 ${execution.row.date} 开盘 ${execution.price.toFixed(2)}，盈亏 ${formatSignedPercent(returnPct)}`;
+  const nextTrades = [...manualTrades.value];
+  const totalReturn = nextTrades.reduce(
+    (value, trade) => value * (1 + trade.returnPct / 100),
+    1,
+  );
+  manualTradeStatus.value = `卖出 ${execution.row.date} 开盘 ${execution.price.toFixed(2)}，本笔 ${formatSignedPercent(returnPct)}，累计 ${formatSignedPercent((totalReturn - 1) * 100)}`;
 }
 
 function clearManualTradeMarks() {
