@@ -8,6 +8,7 @@ Python + Vue stock K-line dashboard powered by AkShare.
 - Query by A-share stock code or stock name, such as `000001` or `平安银行`.
 - Backend calculates MA5, MA20, and MA60 from closing prices.
 - Vue frontend renders candlestick, moving-average lines, and volume with ECharts.
+- Double-clicking the active chart guide line selects that K-line and its volume bar, then left/right arrow keys move the selection.
 - WebSocket pushes the cached backend payload to the frontend every 5 seconds.
 - One-click copy exports date, OHLC, volume, MA5, MA20, and MA60 as tab-separated text.
 - Watchlist persistence is backed by SQLite at `backend/data/watchlist.db`.

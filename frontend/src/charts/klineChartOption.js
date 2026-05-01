@@ -12,6 +12,11 @@ const MOVING_AVERAGE_COLORS = {
   20: "#f2994a",
   60: "#6fcf97",
 };
+const POINTER_LINE_STYLE = {
+  color: "#9aa4b2",
+  type: "dashed",
+  width: 1,
+};
 
 function defaultZoomRange(dates) {
   // Show a stable number of recent K-lines instead of a calendar-month window.
@@ -77,6 +82,51 @@ function calculateVolumeAverage(rows, days) {
     if (windowVolumes.some((value) => value === null)) return null;
     return windowVolumes.reduce((sum, value) => sum + value, 0) / days;
   });
+}
+
+function isSelectedIndex(rows, index) {
+  // Check whether a chart row index can be highlighted.
+  return Number.isInteger(index) && index >= 0 && index < rows.length;
+}
+
+function volumeBarColor(row, opacity = 0.72) {
+  // Match volume bar color to the corresponding candle direction.
+  const open = numericValue(row?.open);
+  const close = numericValue(row?.close);
+  if (open === null || close === null) return "#9aa4b2";
+  return close >= open
+    ? `rgba(214,69,69,${opacity})`
+    : `rgba(26,155,104,${opacity})`;
+}
+
+function buildCandleData(rows) {
+  // Shape OHLC rows for the candlestick series.
+  return rows.map((item) => [
+    numericValue(item.open),
+    numericValue(item.close),
+    numericValue(item.low),
+    numericValue(item.high),
+  ]);
+}
+
+function buildVolumeData(rows) {
+  // Shape volume rows for the lower bar series.
+  return rows.map((item) => item.volume);
+}
+
+function selectedMarkLine(dates, selectedIndex) {
+  // Build a vertical guide line for the selected date.
+  const date = dates[selectedIndex];
+  if (!date) return [];
+  return [
+    {
+      name: "选中",
+      xAxis: date,
+      lineStyle: {
+        ...POINTER_LINE_STYLE,
+      },
+    },
+  ];
 }
 
 function formatTooltipNumber(value, digits = 2) {
@@ -263,23 +313,24 @@ export function makeKlineChartOption({
   rows,
   copySelectionMode,
   copyStartIndex,
+  selectedKlineIndex,
   backtestResult,
   zoomRange,
 }) {
   // Build the full ECharts option from K-line rows and dashboard overlays.
   const dates = rows.map((item) => item.date);
-  const candle = rows.map((item) => [
-    numericValue(item.open),
-    numericValue(item.close),
-    numericValue(item.low),
-    numericValue(item.high),
-  ]);
+  const activeSelectedIndex = isSelectedIndex(rows, selectedKlineIndex)
+    ? selectedKlineIndex
+    : null;
+  const candle = buildCandleData(rows);
+  const volumeBars = buildVolumeData(rows);
   const ma5 = rows.map((item) => item.ma5);
   const ma20 = rows.map((item) => item.ma20);
   const ma60 = rows.map((item) => item.ma60);
   const strategyMarks = backtestMarkPoints(rows, dates, backtestResult);
   const tradeReturnMarks = tradeReturnMarkPoints(dates, backtestResult);
   const holdingAreas = backtestMarkAreas(dates, backtestResult);
+  const selectedLines = selectedMarkLine(dates, activeSelectedIndex);
   const activeZoomRange = normalizeZoomRange(dates, zoomRange);
   const bollBands = calculateBollBands(rows);
   const volumeAverages = Object.fromEntries(
@@ -401,15 +452,19 @@ export function makeKlineChartOption({
           silent: true,
           symbol: "none",
           label: { show: false },
-          lineStyle: {
-            color: "#195fc9",
-            type: "dashed",
-            width: 1.5,
-          },
-          data:
-            copySelectionMode && copyStartIndex !== null
-              ? [{ xAxis: dates[copyStartIndex] }]
-              : [],
+          data: [
+            ...(copySelectionMode && copyStartIndex !== null
+              ? [
+                  {
+                    xAxis: dates[copyStartIndex],
+                    lineStyle: {
+                      ...POINTER_LINE_STYLE,
+                    },
+                  },
+                ]
+              : []),
+            ...selectedLines,
+          ],
         },
         markPoint: {
           data: [...strategyMarks, ...tradeReturnMarks],
@@ -472,24 +527,22 @@ export function makeKlineChartOption({
         type: "bar",
         xAxisIndex: 1,
         yAxisIndex: 1,
-        data: rows.map((item) => item.volume),
+        data: volumeBars,
+        markLine: {
+          silent: true,
+          symbol: "none",
+          label: { show: false },
+          data: selectedLines,
+        },
         itemStyle: {
           color: (params) => {
-            const row = rows[params.dataIndex];
-            const open = numericValue(row?.open);
-            const close = numericValue(row?.close);
-            if (open === null || close === null) return "#9aa4b2";
-            return close >= open ? "rgba(214,69,69,0.72)" : "rgba(26,155,104,0.72)";
+            return volumeBarColor(rows[params.dataIndex]);
           },
         },
         emphasis: {
           itemStyle: {
             color: (params) => {
-              const row = rows[params.dataIndex];
-              const open = numericValue(row?.open);
-              const close = numericValue(row?.close);
-              if (open === null || close === null) return "#667085";
-              return close >= open ? "#c43836" : "#16865d";
+              return volumeBarColor(rows[params.dataIndex], 1);
             },
           },
         },
