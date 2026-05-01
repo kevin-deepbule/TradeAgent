@@ -5,9 +5,16 @@ const queryInput = defineModel("queryInput", { type: String, default: "" });
 
 defineProps({
   copySelectionMode: { type: Boolean, default: false },
+  currentSymbol: { type: String, default: "" },
+  defaultSymbol: { type: String, default: "" },
 });
 
-defineEmits(["submit-query", "add-watchlist", "toggle-copy-selection"]);
+defineEmits([
+  "submit-query",
+  "add-watchlist",
+  "set-default-stock",
+  "toggle-copy-selection",
+]);
 </script>
 
 <template>
@@ -24,6 +31,14 @@ defineEmits(["submit-query", "add-watchlist", "toggle-copy-selection"]);
       </form>
       <button class="secondary-button" type="button" @click="$emit('add-watchlist')">
         加入自选
+      </button>
+      <button
+        class="secondary-button"
+        type="button"
+        :disabled="!currentSymbol || currentSymbol === defaultSymbol"
+        @click="$emit('set-default-stock')"
+      >
+        {{ currentSymbol === defaultSymbol ? "已默认" : "设为默认" }}
       </button>
       <button class="copy-button" type="button" @click="$emit('toggle-copy-selection')">
         {{ copySelectionMode ? "取消选区" : "复制K线数据" }}

@@ -15,6 +15,7 @@ const {
   queryInput,
   currentSymbol,
   currentName,
+  defaultSymbol,
   rows,
   watchlist,
   watchlistLoading,
@@ -32,6 +33,7 @@ const {
   loadWatchlist,
   submitQuery,
   addToWatchlist,
+  setCurrentAsDefaultStock,
   removeFromWatchlist,
   selectWatchlistStock,
   startCopySelection,
@@ -82,8 +84,11 @@ function toggleCopySelection() {
     <AppHeader
       v-model:query-input="queryInput"
       :copy-selection-mode="copySelectionMode"
+      :current-symbol="currentSymbol"
+      :default-symbol="defaultSymbol"
       @submit-query="handleSubmitQuery"
       @add-watchlist="addToWatchlist()"
+      @set-default-stock="setCurrentAsDefaultStock"
       @toggle-copy-selection="toggleCopySelection"
     />
 

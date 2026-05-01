@@ -7,14 +7,21 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.router import api_router
+from backend.repositories.settings_repository import init_settings_db
 from backend.repositories.watchlist_repository import init_watchlist_db
-from backend.services.stock_service import load_watchlist_into_store, refresh_loop
+from backend.services.stock_service import (
+    load_default_stock_into_store,
+    load_watchlist_into_store,
+    refresh_loop,
+)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     """Initialize persistent state and run the background refresh task."""
     await asyncio.to_thread(init_watchlist_db)
+    await asyncio.to_thread(init_settings_db)
+    await load_default_stock_into_store()
     await load_watchlist_into_store()
     task = asyncio.create_task(refresh_loop())
     yield

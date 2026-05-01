@@ -8,6 +8,7 @@ from typing import Any
 import pandas as pd
 
 from backend.config import REFRESH_SECONDS
+from backend.repositories.settings_repository import get_default_stock_sync
 from backend.repositories.watchlist_repository import list_watchlist_sync
 from backend.services.advice_service import build_trade_advice
 from backend.services.stock_store import store
@@ -38,6 +39,12 @@ async def load_watchlist_into_store() -> None:
     items = await asyncio.to_thread(list_watchlist_sync)
     for item in items:
         await store.add_symbol(item["symbol"], item.get("name") or None)
+
+
+async def load_default_stock_into_store() -> None:
+    """Load the persisted default stock into the live refresh store."""
+    item = await asyncio.to_thread(get_default_stock_sync)
+    await store.add_symbol(item["symbol"], item.get("name") or None)
 
 
 @lru_cache(maxsize=1)

@@ -5,8 +5,10 @@ import { wsBase } from "../config";
 import {
   createWatchlistItem,
   deleteWatchlistItem,
+  fetchDefaultStock,
   fetchKline,
   fetchWatchlist,
+  updateDefaultStock,
 } from "../services/stockApi";
 import { valueForExport } from "../utils/formatters";
 
@@ -16,6 +18,7 @@ export function useStockDashboard() {
   const currentQuery = ref("000001");
   const currentSymbol = ref("000001");
   const currentName = ref("");
+  const defaultSymbol = ref("000001");
   const rows = ref([]);
   const watchlist = ref([]);
   const watchlistLoading = ref(false);
@@ -122,6 +125,30 @@ export function useStockDashboard() {
     };
   }
 
+  function activateQuery(query) {
+    // Switch to a query and reconnect immediately when the value is unchanged.
+    queryInput.value = query;
+    if (currentQuery.value === query) {
+      connect(query);
+      return;
+    }
+    currentQuery.value = query;
+  }
+
+  async function loadDefaultStock() {
+    // Load the persisted default stock before opening the first live connection.
+    try {
+      const defaultStock = await fetchDefaultStock();
+      const symbol = defaultStock.symbol || "000001";
+      defaultSymbol.value = symbol;
+      currentSymbol.value = symbol;
+      activateQuery(symbol);
+    } catch {
+      copyStatus.value = "默认股票加载失败，使用 000001";
+      activateQuery(currentQuery.value);
+    }
+  }
+
   function submitQuery() {
     // Promote the search box value into the active query.
     const nextQuery = queryInput.value.trim();
@@ -129,6 +156,21 @@ export function useStockDashboard() {
     stopCopySelection();
     copyStatus.value = "";
     currentQuery.value = nextQuery;
+  }
+
+  async function setCurrentAsDefaultStock() {
+    // Persist the currently displayed stock as the default dashboard stock.
+    if (!currentSymbol.value) return;
+    try {
+      const saved = await updateDefaultStock(currentSymbol.value);
+      defaultSymbol.value = saved.symbol || currentSymbol.value;
+      copyStatus.value = "已设为默认显示";
+      window.setTimeout(() => {
+        copyStatus.value = "";
+      }, 1800);
+    } catch (exc) {
+      copyStatus.value = exc.message || "设置默认股票失败";
+    }
   }
 
   async function addToWatchlist(query = queryInput.value) {
@@ -258,7 +300,7 @@ export function useStockDashboard() {
 
   onMounted(() => {
     loadWatchlist();
-    connect(currentQuery.value);
+    loadDefaultStock();
   });
 
   onBeforeUnmount(() => {
@@ -272,6 +314,7 @@ export function useStockDashboard() {
     currentQuery,
     currentSymbol,
     currentName,
+    defaultSymbol,
     rows,
     watchlist,
     watchlistLoading,
@@ -289,6 +332,7 @@ export function useStockDashboard() {
     loadWatchlist,
     submitQuery,
     addToWatchlist,
+    setCurrentAsDefaultStock,
     removeFromWatchlist,
     selectWatchlistStock,
     startCopySelection,

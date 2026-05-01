@@ -11,6 +11,7 @@ Python + Vue stock K-line dashboard powered by AkShare.
 - WebSocket pushes the cached backend payload to the frontend every 5 seconds.
 - One-click copy exports date, OHLC, volume, MA5, MA20, and MA60 as tab-separated text.
 - Watchlist persistence is backed by SQLite at `backend/data/watchlist.db`.
+- The dashboard default stock can be changed from the current stock and is persisted in SQLite.
 - Strategy backtesting runs in the frontend against the current K-line rows, with buy/sell markers, per-trade return labels, and yellow holding bands drawn on the chart.
 
 ## Frontend Structure
@@ -80,6 +81,8 @@ sudo apt-get install python3-pip python3-venv
 
 Backend API:
 
+- `GET http://localhost:8001/api/default-stock`
+- `PUT http://localhost:8001/api/default-stock`
 - `GET http://localhost:8001/api/stocks/000001/kline`
 - `WS ws://localhost:8001/ws/stocks/000001`
 

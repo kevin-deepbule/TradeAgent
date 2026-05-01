@@ -2,10 +2,11 @@
 
 from fastapi import APIRouter
 
-from backend.api import health, stocks, watchlist
+from backend.api import health, settings, stocks, watchlist
 
 
 api_router = APIRouter()
 api_router.include_router(health.router)
+api_router.include_router(settings.router)
 api_router.include_router(watchlist.router)
 api_router.include_router(stocks.router)

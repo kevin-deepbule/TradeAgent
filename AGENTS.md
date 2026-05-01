@@ -142,6 +142,8 @@ When implementing stock data features:
 ## Current API Surface
 
 - `GET /api/health`
+- `GET /api/default-stock`
+- `PUT /api/default-stock`
 - `GET /api/watchlist`
 - `POST /api/watchlist`
 - `DELETE /api/watchlist/{symbol}`

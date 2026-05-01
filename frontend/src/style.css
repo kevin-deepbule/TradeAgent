@@ -100,6 +100,11 @@ select {
   white-space: nowrap;
 }
 
+.secondary-button:disabled {
+  background: #c3cad6;
+  cursor: not-allowed;
+}
+
 .main-layout {
   display: grid;
   grid-template-columns: 230px minmax(0, 1fr);

@@ -10,6 +10,26 @@ export async function fetchKline(query) {
   return response.json();
 }
 
+export async function fetchDefaultStock() {
+  // Load the stock configured as the dashboard default.
+  const response = await fetch(`${apiBase}/api/default-stock`);
+  return response.json();
+}
+
+export async function updateDefaultStock(query) {
+  // Persist the requested stock as the dashboard default.
+  const response = await fetch(`${apiBase}/api/default-stock`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query }),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || "设置默认股票失败");
+  }
+  return response.json();
+}
+
 export async function fetchWatchlist() {
   // Load the persisted watchlist from the backend.
   const response = await fetch(`${apiBase}/api/watchlist`);
