@@ -48,5 +48,6 @@ npm --prefix frontend run build
 ## Notes
 
 - The Vite dev server uses `strictPort`; if `5173` is occupied, fix the process conflict instead of silently changing ports.
+- Update `README.md` and this `AGENTS.md` whenever frontend behavior, commands, configuration, API usage, structure, backtest rules, or runtime assumptions change.
 - Do not commit `node_modules/` or `dist/`.
 - Every source file and touched function should have concise comments where the project comment rules require them.

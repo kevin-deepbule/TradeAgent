@@ -27,6 +27,7 @@ The backend is the public API boundary for the browser. It owns:
 - `src/main/java/com/tradeagent/service/`: stock workflow, cache, startup, and advice services.
 - `src/main/java/com/tradeagent/websocket/`: WebSocket configuration and handler.
 - `src/main/resources/application.properties`: environment-derived runtime defaults.
+- `docker/`: optional Docker Compose definitions for local backend infrastructure.
 - `data/watchlist.db`: local SQLite runtime database.
 
 ## Run
@@ -52,6 +53,47 @@ Defaults:
 mvn -f backend/pom.xml package
 java -jar backend/target/trade-agent-backend-0.1.0.jar
 ```
+
+## Docker Infrastructure
+
+`docker/docker-compose-fundament.yml` starts optional local dependencies for
+backend development:
+
+- PostgreSQL 16 on `localhost:5432`
+- RabbitMQ 3.13 with AMQP on `localhost:5672`
+- RabbitMQ management UI on `http://localhost:15672`
+- Redis 7 on `localhost:6379`
+
+Start the services:
+
+```bash
+docker compose -f backend/docker/docker-compose-fundament.yml up -d
+```
+
+Check service status:
+
+```bash
+docker compose -f backend/docker/docker-compose-fundament.yml ps
+```
+
+Stop the services:
+
+```bash
+docker compose -f backend/docker/docker-compose-fundament.yml down
+```
+
+The compose file uses Docker named volumes for service state. Remove those
+volumes only when you intentionally want to reset local infrastructure data:
+
+```bash
+docker compose -f backend/docker/docker-compose-fundament.yml down -v
+```
+
+Environment variables can override defaults:
+
+- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT`
+- `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS`, `RABBITMQ_PORT`, `RABBITMQ_MANAGEMENT_PORT`
+- `REDIS_PORT`
 
 ## Test
 

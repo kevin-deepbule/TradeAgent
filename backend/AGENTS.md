@@ -19,6 +19,7 @@ This directory contains the Spring Boot backend.
 - `dto/`: public API payloads.
 - `config/`: Spring configuration, app properties, CORS, datasource, and HTTP client beans.
 - `util/`: small backend-only helpers.
+- `docker/`: optional Docker Compose definitions for backend development infrastructure.
 
 ## API Contract
 
@@ -61,6 +62,14 @@ Compile and test:
 mvn -f backend/pom.xml test
 ```
 
+Optional Docker infrastructure:
+
+```bash
+docker compose -f backend/docker/docker-compose-fundament.yml up -d
+docker compose -f backend/docker/docker-compose-fundament.yml ps
+docker compose -f backend/docker/docker-compose-fundament.yml down
+```
+
 Smoke checks:
 
 ```bash
@@ -74,5 +83,8 @@ curl --noproxy '*' http://localhost:8001/api/stocks/000001/kline
 - Default backend port is `8001`.
 - Default adapter base URL is `http://localhost:8002`.
 - Local SQLite state lives at `backend/data/watchlist.db`.
-- Do not commit `data/watchlist.db` or `target/`.
+- Optional Docker infrastructure runs PostgreSQL, RabbitMQ, and Redis from `docker/docker-compose-fundament.yml`.
+- Docker service state lives in named volumes; use `docker compose -f backend/docker/docker-compose-fundament.yml down -v` only when intentionally resetting it.
+- Update `README.md` and this `AGENTS.md` whenever backend behavior, commands, configuration, APIs, structure, infrastructure, or runtime assumptions change.
+- Do not commit `data/watchlist.db`, Docker service data, or `target/`.
 - Every source file and public method should have concise comments where the project comment rules require them.

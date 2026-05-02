@@ -8,6 +8,7 @@ backend, and Python AkShare adapter.
 ```text
 frontend/          Vue 3 + Vite + ECharts dashboard
 backend/           Spring Boot REST API, WebSocket, SQLite persistence
+backend/docker/    Optional Docker Compose services for backend development
 akshare_adapter/   FastAPI internal service wrapping AkShare
 ```
 
@@ -29,6 +30,9 @@ frontend.
 - [AGENTS.md](AGENTS.md): global project rules for AI and automation agents.
 
 Each subproject also has its own `AGENTS.md` with local development rules.
+When changing behavior, commands, configuration, APIs, directory
+responsibilities, or runtime assumptions, update the nearest matching
+`README.md` and `AGENTS.md` in the same change.
 
 ## Quick Start
 
@@ -46,6 +50,12 @@ Run the AkShare adapter:
 mkdir -p .logs
 source .venv/bin/activate
 python3 -m akshare_adapter.server 2>&1 | tee .logs/akshare-adapter.log
+```
+
+Start optional backend infrastructure:
+
+```bash
+docker compose -f backend/docker/docker-compose-fundament.yml up -d
 ```
 
 Run the backend:
@@ -68,6 +78,7 @@ Default local endpoints:
 - Frontend: `http://localhost:5173`
 - Backend health: `http://localhost:8001/api/health`
 - AkShare adapter health: `http://localhost:8002/internal/health`
+- RabbitMQ management, when Docker infrastructure is running: `http://localhost:15672`
 
 ## Verification
 
@@ -84,6 +95,7 @@ curl --noproxy '*' http://localhost:8001/api/stocks/000001/kline
 ## Runtime State
 
 - SQLite database: `backend/data/watchlist.db`
+- Optional Docker service state: Docker named volumes declared in `backend/docker/`
 - Local logs: `.logs/`
 - Frontend build output: `frontend/dist/`
 - Maven build output: `backend/target/`

@@ -22,6 +22,7 @@ adapter.
 
 - Frontend: Vue 3 + Vite + ECharts in `frontend/`
 - Backend: Spring Boot + SQLite in `backend/`
+- Backend infrastructure: Docker Compose in `backend/docker/`
 - Adapter: FastAPI + AkShare + pandas in `akshare_adapter/`
 - Data source: AkShare
 - Database: `backend/data/watchlist.db`
@@ -30,6 +31,7 @@ adapter.
 
 - `frontend/` owns browser UI, ECharts configuration, API wrappers, and frontend-only strategy backtests.
 - `backend/` owns public REST APIs, WebSocket APIs, persistence, caching, startup initialization, and trade advice.
+- `backend/docker/` owns optional local infrastructure definitions for backend development.
 - `akshare_adapter/` owns AkShare calls and internal data-source adaptation.
 - Root-level `README.md` and `AGENTS.md` describe the whole workspace.
 - Subdirectory `README.md` and `AGENTS.md` files describe local module rules.
@@ -52,6 +54,13 @@ Backend:
 ```bash
 mkdir -p .logs
 mvn -f backend/pom.xml spring-boot:run 2>&1 | tee .logs/backend.log
+```
+
+Optional backend infrastructure:
+
+```bash
+docker compose -f backend/docker/docker-compose-fundament.yml up -d
+docker compose -f backend/docker/docker-compose-fundament.yml down
 ```
 
 Frontend:
@@ -148,7 +157,9 @@ Execution assumptions:
 
 - Keep backend route paths stable because the frontend calls them directly.
 - Keep `backend/data/watchlist.db` out of git; it is local runtime state.
+- Keep Docker Compose files in `backend/docker/` focused on local backend infrastructure; do not put application runtime state in git.
 - Keep AkShare access isolated in `akshare_adapter/`; Java should call the adapter instead of reimplementing AkShare scraping.
+- When a change affects behavior, commands, configuration, APIs, directory responsibilities, or runtime assumptions, update the nearest matching `README.md` and `AGENTS.md` in the same change.
 - The frontend Vite dev port uses `strictPort`; if `5173` is occupied, fix the process conflict instead of silently changing ports.
 - The backend default port is `8001` because `8000` is unavailable in the current environment.
 - Do not commit generated caches, `node_modules`, `dist`, `.venv`, Maven `target`, or database files.

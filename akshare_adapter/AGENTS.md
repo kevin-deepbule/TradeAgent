@@ -57,5 +57,6 @@ curl --noproxy '*' http://localhost:8002/internal/health
 
 - Default adapter port is `8002`.
 - Keep this service internal to the backend; the frontend should not call it directly.
+- Update `README.md` and this `AGENTS.md` whenever adapter behavior, commands, configuration, routes, AkShare usage, structure, or runtime assumptions change.
 - Do not commit `__pycache__/` or virtual environment files.
 - Every source file and public function should have concise comments or docstrings where the project comment rules require them.
