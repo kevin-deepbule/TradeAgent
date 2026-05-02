@@ -1,6 +1,6 @@
 # Project Instructions
 
-This project uses AkShare for stock-market data.
+This project uses AkShare for A-share stock-market data.
 
 Primary documentation:
 - https://akshare.akfamily.xyz/data/stock/stock.html
@@ -13,17 +13,29 @@ When implementing stock data features:
 - For A-share historical quotes, start with `ak.stock_zh_a_hist`.
 - For A-share realtime spot quotes, start with `ak.stock_zh_a_spot_em`.
 
-# Stock Analyst Agent Guide
+# TradeAgent Agent Guide
 
 ## Project Overview
 
-This project is a Java + Vue A-share K-line dashboard with a small Python AkShare adapter.
+This is a Java + Vue A-share K-line dashboard with a small Python AkShare
+adapter.
 
-- Backend: Spring Boot + SQLite
-- Adapter: FastAPI + AkShare + pandas
-- Frontend: Vue 3 + Vite + ECharts
+- Frontend: Vue 3 + Vite + ECharts in `frontend/`
+- Backend: Spring Boot + SQLite in `backend/`
+- Adapter: FastAPI + AkShare + pandas in `akshare_adapter/`
 - Data source: AkShare
 - Database: `backend/data/watchlist.db`
+
+## Directory Boundaries
+
+- `frontend/` owns browser UI, ECharts configuration, API wrappers, and frontend-only strategy backtests.
+- `backend/` owns public REST APIs, WebSocket APIs, persistence, caching, startup initialization, and trade advice.
+- `akshare_adapter/` owns AkShare calls and internal data-source adaptation.
+- Root-level `README.md` and `AGENTS.md` describe the whole workspace.
+- Subdirectory `README.md` and `AGENTS.md` files describe local module rules.
+
+Do not make the frontend call `akshare_adapter/` directly. Keep the adapter as
+an internal backend dependency.
 
 ## Run Commands
 
@@ -42,25 +54,12 @@ mkdir -p .logs
 mvn -f backend/pom.xml spring-boot:run 2>&1 | tee .logs/backend.log
 ```
 
-Backend defaults:
-
-- Host: `0.0.0.0`
-- Port: `8001`
-- Health: `http://localhost:8001/api/health`
-- AkShare adapter base: `http://localhost:8002`
-
 Frontend:
 
 ```bash
 mkdir -p .logs
 npm --prefix frontend run dev 2>&1 | tee .logs/frontend.log
 ```
-
-Frontend defaults:
-
-- Dev server: `http://localhost:5173`
-- API base: `http://localhost:8001`
-- WebSocket base: `ws://localhost:8001`
 
 ## Verification
 
@@ -91,49 +90,7 @@ curl --noproxy '*' http://localhost:8001/api/watchlist
 curl --noproxy '*' http://localhost:8001/api/stocks/000001/kline
 ```
 
-## Backend Structure
-
-- `backend/pom.xml`: Maven build for the Spring Boot backend.
-- `backend/src/main/java/com/tradeagent/TradeAgentApplication.java`: backend entrypoint.
-- `backend/src/main/java/com/tradeagent/config/`: backend configuration, CORS, datasource, HTTP client.
-- `backend/src/main/java/com/tradeagent/controller/`: REST API controllers.
-- `backend/src/main/java/com/tradeagent/websocket/`: stock WebSocket endpoint.
-- `backend/src/main/java/com/tradeagent/repository/`: SQLite persistence layer.
-- `backend/src/main/java/com/tradeagent/service/`: stock workflow, cache, startup initialization, trade advice.
-- `backend/src/main/java/com/tradeagent/client/`: local AkShare adapter client.
-- `backend/src/main/java/com/tradeagent/dto/`: API payload DTOs.
-- `backend/src/main/resources/application.properties`: environment-derived runtime defaults.
-
-## AkShare Adapter Structure
-
-- `akshare_adapter/server.py`: uvicorn entrypoint for the internal adapter.
-- `akshare_adapter/main.py`: FastAPI app and internal routes.
-- `akshare_adapter/stock_adapter.py`: AkShare calls, symbol resolution, K-line shaping.
-- `akshare_adapter/config.py`: adapter host, port, and K-line window settings.
-- `akshare_adapter/utils.py`: stock-symbol, text, market, date, and NaN helpers.
-
-## Frontend Structure
-
-- `frontend/src/App.vue`: Dashboard shell that wires composables and presentational panels.
-- `frontend/src/main.js`: Vue app bootstrap and global error reporting.
-- `frontend/src/components/`: Presentational Vue panels.
-- `frontend/src/composables/`: Vue state/lifecycle modules.
-- `frontend/src/services/`: API wrappers and pure-domain services.
-- `frontend/src/charts/klineChartOption.js`: ECharts option builder.
-- `frontend/src/utils/formatters.js`: Numeric, percent, and clipboard export formatting helpers.
-- `frontend/src/config.js`: Vite environment-derived API/WebSocket bases.
-- `frontend/src/style.css`: Global dashboard styling.
-- `frontend/vite.config.js`: Vite server/preview fixed port config.
-
-## Frontend Refactor Notes
-
-- Keep `App.vue` thin. Add new dashboard behavior through `components/`, `composables/`, `services/`, or `charts/` according to responsibility.
-- Keep API calls inside `frontend/src/services/stockApi.js`; keep pure strategy math inside `frontend/src/services/backtest.js`.
-- Keep ECharts option shape in `frontend/src/charts/klineChartOption.js`; components should not inline chart option objects.
-- Keep display-only UI in `frontend/src/components/`; components should receive data through props and emit user intents.
-- The global stylesheet currently owns dashboard layout and panel styling. Reuse existing class names before adding new visual systems.
-
-## Current API Surface
+## Current Public API Surface
 
 - `GET /api/health`
 - `GET /api/default-stock`
@@ -166,8 +123,9 @@ The K-line response includes:
 
 ## Strategy Backtest Rules
 
-The strategy backtest is frontend-only and uses the K-line `rows` returned by the backend.
-The backend returns the most recent 5 calendar years of daily K-line rows, so the backtest window follows that returned data range.
+The strategy backtest is frontend-only and uses the K-line `rows` returned by
+the backend. The backend returns the most recent 5 calendar years of daily
+K-line rows, so the backtest window follows that returned data range.
 
 Available strategies:
 
