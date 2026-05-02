@@ -21,7 +21,7 @@ This is a Java + Vue A-share K-line dashboard with a small Python AkShare
 adapter.
 
 - Frontend: Vue 3 + Vite + ECharts in `frontend/`
-- Backend: Spring Boot + SQLite in `backend/`
+- Backend: DDD-oriented Spring Boot multi-module app + SQLite in `backend/`
 - Backend infrastructure: Docker Compose in `backend/docker/`
 - Adapter: FastAPI + AkShare + pandas in `akshare_adapter/`
 - Data source: AkShare
@@ -30,7 +30,7 @@ adapter.
 ## Directory Boundaries
 
 - `frontend/` owns browser UI, ECharts configuration, API wrappers, and frontend-only strategy backtests.
-- `backend/` owns public REST APIs, WebSocket APIs, persistence, caching, startup initialization, and trade advice.
+- `backend/` owns public REST APIs, WebSocket APIs, persistence, caching, startup initialization, and trade advice through the DDD module split.
 - `backend/docker/` owns optional local infrastructure definitions for backend development.
 - `akshare_adapter/` owns AkShare calls and internal data-source adaptation.
 - Root-level `README.md` and `AGENTS.md` describe the whole workspace.
@@ -53,7 +53,8 @@ Backend:
 
 ```bash
 mkdir -p .logs
-mvn -f backend/pom.xml spring-boot:run 2>&1 | tee .logs/backend.log
+mvn -f backend/pom.xml -pl trade-app -am -DskipTests package
+setsid java -jar backend/trade-app/target/trade-app-0.1.0.jar --debug=false > .logs/backend.log 2>&1 < /dev/null &
 ```
 
 Optional backend infrastructure:
@@ -156,6 +157,7 @@ Execution assumptions:
 ## Development Notes
 
 - Keep backend route paths stable because the frontend calls them directly.
+- Keep backend module boundaries intact: `trade-api` exposes external calls, `trade-app` assembles the runnable app, `trade-domain` owns domain services and ports, `trade-infrastructure` implements storage/cache/external clients, `trade-trigger` owns startup and scheduled tasks, and `trade-types` owns shared DTO/config/util types.
 - Keep `backend/data/watchlist.db` out of git; it is local runtime state.
 - Keep Docker Compose files in `backend/docker/` focused on local backend infrastructure; do not put application runtime state in git.
 - Keep AkShare access isolated in `akshare_adapter/`; Java should call the adapter instead of reimplementing AkShare scraping.

@@ -1,24 +1,23 @@
 # Backend Agent Guide
 
-This directory contains the Spring Boot backend.
+This directory contains the DDD-oriented Spring Boot backend.
 
 ## Responsibility
 
 - Keep public REST and WebSocket route paths stable because the frontend calls them directly.
 - Keep persistence, caching, startup initialization, and trade advice in the backend.
-- Call the local Python AkShare adapter through `src/main/java/com/tradeagent/client/`.
+- Call the local Python AkShare adapter through the infrastructure client implementation.
 - Do not reimplement AkShare scraping or data-source logic in Java.
 
 ## Structure Rules
 
-- `controller/`: REST API controllers and exception translation.
-- `websocket/`: stock WebSocket endpoint and configuration.
-- `service/`: orchestration, cache, startup initialization, and advice logic.
-- `repository/`: SQLite persistence.
-- `client/`: internal HTTP client for `akshare_adapter/`.
-- `dto/`: public API payloads.
-- `config/`: Spring configuration, app properties, CORS, datasource, and HTTP client beans.
-- `util/`: small backend-only helpers.
+- `trade-api/`: REST API controllers, exception translation, CORS, and stock WebSocket endpoint.
+- `trade-app/`: application entrypoint and runtime properties.
+- `trade-domain/`: domain services and ports; do not depend on infrastructure implementations from here.
+- `trade-infrastructure/`: SQLite persistence, in-memory cache, AkShare adapter HTTP client, datasource, and REST client beans.
+- `trade-trigger/`: startup initialization and scheduled tasks.
+- `trade-types/`: public payload DTOs, typed config, and small shared utilities.
+- `docs/`: backend design and module documentation.
 - `docker/`: optional Docker Compose definitions for backend development infrastructure.
 
 ## API Contract
@@ -53,7 +52,8 @@ Run locally:
 
 ```bash
 mkdir -p .logs
-mvn -f backend/pom.xml spring-boot:run 2>&1 | tee .logs/backend.log
+mvn -f backend/pom.xml -pl trade-app -am -DskipTests package
+setsid java -jar backend/trade-app/target/trade-app-0.1.0.jar --debug=false > .logs/backend.log 2>&1 < /dev/null &
 ```
 
 Compile and test:

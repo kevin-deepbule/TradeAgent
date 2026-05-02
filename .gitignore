@@ -4,6 +4,7 @@ __pycache__/
 node_modules/
 dist/
 backend/target/
+backend/**/target/
 .env
 backend/data/*.db
 backend/data/*.db-*

@@ -116,7 +116,10 @@ export function useStockDashboard() {
     };
     socket.onerror = () => {
       status.value = "连接异常";
-      fetchOnce(query).catch(() => {});
+      fetchOnce(query).catch((exc) => {
+        error.value = exc.message || "查询股票失败";
+        status.value = "接口异常";
+      });
     };
     socket.onclose = () => {
       if (seq !== socketSeq) return;

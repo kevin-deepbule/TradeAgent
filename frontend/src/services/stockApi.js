@@ -7,6 +7,10 @@ export async function fetchKline(query) {
   const response = await fetch(
     `${apiBase}/api/stocks/${encodeURIComponent(query)}/kline`,
   );
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || "查询股票失败");
+  }
   return response.json();
 }
 

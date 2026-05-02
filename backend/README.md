@@ -1,8 +1,9 @@
 # TradeAgent Backend
 
-Spring Boot backend for TradeAgent. It exposes the public REST and WebSocket
-API used by the Vue frontend, persists local user settings in SQLite, and calls
-the internal AkShare adapter for stock data.
+Spring Boot backend for TradeAgent. It is split into DDD-oriented Maven modules,
+exposes the public REST and WebSocket API used by the Vue frontend, persists
+local user settings in SQLite, and calls the internal AkShare adapter for stock
+data.
 
 ## Role
 
@@ -17,16 +18,14 @@ The backend is the public API boundary for the browser. It owns:
 
 ## Structure
 
-- `pom.xml`: Maven build definition.
-- `src/main/java/com/tradeagent/TradeAgentApplication.java`: application entrypoint.
-- `src/main/java/com/tradeagent/config/`: runtime configuration, CORS, datasource, and HTTP client beans.
-- `src/main/java/com/tradeagent/controller/`: REST controllers and exception handling.
-- `src/main/java/com/tradeagent/client/`: client for the internal AkShare adapter.
-- `src/main/java/com/tradeagent/dto/`: API payload DTOs.
-- `src/main/java/com/tradeagent/repository/`: SQLite repositories.
-- `src/main/java/com/tradeagent/service/`: stock workflow, cache, startup, and advice services.
-- `src/main/java/com/tradeagent/websocket/`: WebSocket configuration and handler.
-- `src/main/resources/application.properties`: environment-derived runtime defaults.
+- `pom.xml`: parent Maven reactor build.
+- `trade-app/`: Spring Boot entrypoint and `application.properties`.
+- `trade-api/`: REST controllers, exception handling, CORS, and WebSocket endpoints.
+- `trade-domain/`: stock workflow services and ports for data source, cache, and persistence.
+- `trade-infrastructure/`: SQLite repositories, in-memory cache, HTTP client, datasource, and REST client beans.
+- `trade-trigger/`: startup initialization and scheduled refresh triggers.
+- `trade-types/`: shared DTOs, typed config, and backend utility types.
+- `docs/`: backend design and module documentation.
 - `docker/`: optional Docker Compose definitions for local backend infrastructure.
 - `data/watchlist.db`: local SQLite runtime database.
 
@@ -36,7 +35,8 @@ Requires JDK 17+ and Maven.
 
 ```bash
 mkdir -p .logs
-mvn -f backend/pom.xml spring-boot:run 2>&1 | tee .logs/backend.log
+mvn -f backend/pom.xml -pl trade-app -am -DskipTests package
+setsid java -jar backend/trade-app/target/trade-app-0.1.0.jar --debug=false > .logs/backend.log 2>&1 < /dev/null &
 ```
 
 Defaults:
@@ -50,8 +50,8 @@ Defaults:
 ## Package
 
 ```bash
-mvn -f backend/pom.xml package
-java -jar backend/target/trade-agent-backend-0.1.0.jar
+mvn -f backend/pom.xml -pl trade-app -am package
+java -jar backend/trade-app/target/trade-app-0.1.0.jar
 ```
 
 ## Docker Infrastructure
@@ -134,7 +134,7 @@ The K-line response includes:
 
 ## Environment
 
-Runtime settings are configured in `src/main/resources/application.properties`:
+Runtime settings are configured in `trade-app/src/main/resources/application.properties`:
 
 - `BACKEND_HOST`, default `0.0.0.0`
 - `BACKEND_PORT`, default `8001`

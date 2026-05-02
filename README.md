@@ -7,7 +7,7 @@ backend, and Python AkShare adapter.
 
 ```text
 frontend/          Vue 3 + Vite + ECharts dashboard
-backend/           Spring Boot REST API, WebSocket, SQLite persistence
+backend/           DDD-oriented Spring Boot multi-module backend
 backend/docker/    Optional Docker Compose services for backend development
 akshare_adapter/   FastAPI internal service wrapping AkShare
 ```
@@ -62,7 +62,8 @@ Run the backend:
 
 ```bash
 mkdir -p .logs
-mvn -f backend/pom.xml spring-boot:run 2>&1 | tee .logs/backend.log
+mvn -f backend/pom.xml -pl trade-app -am -DskipTests package
+setsid java -jar backend/trade-app/target/trade-app-0.1.0.jar --debug=false > .logs/backend.log 2>&1 < /dev/null &
 ```
 
 Run the frontend:
@@ -98,6 +99,6 @@ curl --noproxy '*' http://localhost:8001/api/stocks/000001/kline
 - Optional Docker service state: Docker named volumes declared in `backend/docker/`
 - Local logs: `.logs/`
 - Frontend build output: `frontend/dist/`
-- Maven build output: `backend/target/`
+- Maven build output: `backend/*/target/`
 
 These generated files should stay out of git.
