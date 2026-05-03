@@ -45,7 +45,9 @@ const {
 
 const {
   strategyOptions,
+  watchlistBacktestYearOptions,
   selectedStrategy,
+  selectedWatchlistBacktestYears,
   selectedStrategyInfo,
   backtestResult,
   backtestStatus,
@@ -107,12 +109,14 @@ function backToDashboard() {
     <WatchlistBacktestView
       v-if="activePage === 'watchlist-backtest'"
       v-model:selected-strategy="selectedStrategy"
+      v-model:selected-backtest-years="selectedWatchlistBacktestYears"
       :performance-class="performanceClass"
       :selected-strategy-info="selectedStrategyInfo"
       :selected-watchlist-count="selectedWatchlistCount"
       :selected-watchlist-symbols="selectedWatchlistSymbols"
       :strategy-options="strategyOptions"
       :watchlist="watchlist"
+      :watchlist-backtest-year-options="watchlistBacktestYearOptions"
       :watchlist-backtest-results="watchlistBacktestResults"
       :watchlist-backtest-running="watchlistBacktestRunning"
       :watchlist-backtest-status="watchlistBacktestStatus"

@@ -1,6 +1,7 @@
 <script setup>
 // Dedicated view for selecting watchlist stocks and displaying batch backtests.
 
+import { computed } from "vue";
 import {
   formatPlainPercent,
   formatSignedPercent,
@@ -11,16 +12,79 @@ const selectedStrategy = defineModel("selectedStrategy", {
   default: "",
 });
 
-defineProps({
+const selectedBacktestYears = defineModel("selectedBacktestYears", {
+  type: Number,
+  default: 5,
+});
+
+const props = defineProps({
   performanceClass: { type: Function, required: true },
   selectedStrategyInfo: { type: Object, default: null },
   selectedWatchlistCount: { type: Number, default: 0 },
   selectedWatchlistSymbols: { type: Array, default: () => [] },
   strategyOptions: { type: Array, default: () => [] },
   watchlist: { type: Array, default: () => [] },
+  watchlistBacktestYearOptions: { type: Array, default: () => [] },
   watchlistBacktestResults: { type: Array, default: () => [] },
   watchlistBacktestRunning: { type: Boolean, default: false },
   watchlistBacktestStatus: { type: String, default: "" },
+});
+
+function validReturnValues(results, valueForItem) {
+  // Collect finite return values from successful batch backtest records.
+  return results
+    .map(valueForItem)
+    .filter((value) => Number.isFinite(Number(value)))
+    .map(Number);
+}
+
+function average(values) {
+  // Calculate the arithmetic mean for an existing list of return percentages.
+  return values.reduce((total, value) => total + value, 0) / values.length;
+}
+
+function median(values) {
+  // Calculate the middle return while preserving the caller's value order.
+  const sortedValues = values.slice().sort((left, right) => left - right);
+  const middleIndex = Math.floor(sortedValues.length / 2);
+  if (sortedValues.length % 2) return sortedValues[middleIndex];
+  return (sortedValues[middleIndex - 1] + sortedValues[middleIndex]) / 2;
+}
+
+function summarizeReturns(returns) {
+  // Build the shared summary shape for strategy and benchmark return groups.
+  if (!returns.length) {
+    return {
+      count: 0,
+      averageReturn: null,
+      medianReturn: null,
+      maxReturn: null,
+      minReturn: null,
+    };
+  }
+  return {
+    count: returns.length,
+    averageReturn: average(returns),
+    medianReturn: median(returns),
+    maxReturn: Math.max(...returns),
+    minReturn: Math.min(...returns),
+  };
+}
+
+const watchlistBacktestSummary = computed(() => {
+  // Summarize strategy and buy-and-hold returns for the result header.
+  const strategyReturns = validReturnValues(
+    props.watchlistBacktestResults,
+    (item) => item.result?.totalReturn,
+  );
+  const benchmarkReturns = validReturnValues(
+    props.watchlistBacktestResults,
+    (item) => item.benchmarkReturn,
+  );
+  return {
+    strategy: summarizeReturns(strategyReturns),
+    benchmark: summarizeReturns(benchmarkReturns),
+  };
 });
 
 defineEmits([
@@ -59,6 +123,32 @@ defineEmits([
             </option>
           </select>
         </div>
+
+        <div class="strategy-field">
+          <label for="batch-backtest-years">回测周期</label>
+          <select
+            id="batch-backtest-years"
+            v-model.number="selectedBacktestYears"
+            :disabled="watchlistBacktestRunning"
+          >
+            <option
+              v-for="option in watchlistBacktestYearOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+
+        <button
+          class="backtest-run batch-start-button"
+          type="button"
+          :disabled="!selectedWatchlistCount || watchlistBacktestRunning"
+          @click="$emit('run-watchlist-backtest')"
+        >
+          {{ watchlistBacktestRunning ? "回测中" : "开始回测" }}
+        </button>
 
         <div class="batch-select-header">
           <span>选择自选股</span>
@@ -101,15 +191,6 @@ defineEmits([
             </label>
           </li>
         </ul>
-
-        <button
-          class="backtest-run batch-start-button"
-          type="button"
-          :disabled="!selectedWatchlistCount || watchlistBacktestRunning"
-          @click="$emit('run-watchlist-backtest')"
-        >
-          {{ watchlistBacktestRunning ? "回测中" : "开始回测" }}
-        </button>
       </aside>
 
       <section class="batch-result-panel">
@@ -118,6 +199,130 @@ defineEmits([
             <span>回测结果</span>
             <strong>{{ watchlistBacktestStatus || "待回测" }}</strong>
           </div>
+        </div>
+
+        <div
+          v-if="
+            watchlistBacktestSummary.strategy.count ||
+            watchlistBacktestSummary.benchmark.count
+          "
+          class="batch-summary-groups"
+        >
+          <section class="batch-summary-group">
+            <h2>有策略的盈利数据</h2>
+            <div class="batch-summary-metrics">
+              <div>
+                <span>有效样本</span>
+                <strong>{{ watchlistBacktestSummary.strategy.count }} 只</strong>
+              </div>
+              <div>
+                <span>平均盈利</span>
+                <strong
+                  :class="
+                    performanceClass(watchlistBacktestSummary.strategy.averageReturn)
+                  "
+                >
+                  {{
+                    formatSignedPercent(
+                      watchlistBacktestSummary.strategy.averageReturn,
+                    )
+                  }}
+                </strong>
+              </div>
+              <div>
+                <span>盈利中位数</span>
+                <strong
+                  :class="
+                    performanceClass(watchlistBacktestSummary.strategy.medianReturn)
+                  "
+                >
+                  {{
+                    formatSignedPercent(
+                      watchlistBacktestSummary.strategy.medianReturn,
+                    )
+                  }}
+                </strong>
+              </div>
+              <div>
+                <span>盈利最大值</span>
+                <strong
+                  :class="
+                    performanceClass(watchlistBacktestSummary.strategy.maxReturn)
+                  "
+                >
+                  {{ formatSignedPercent(watchlistBacktestSummary.strategy.maxReturn) }}
+                </strong>
+              </div>
+              <div>
+                <span>盈利最小值</span>
+                <strong
+                  :class="
+                    performanceClass(watchlistBacktestSummary.strategy.minReturn)
+                  "
+                >
+                  {{ formatSignedPercent(watchlistBacktestSummary.strategy.minReturn) }}
+                </strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="batch-summary-group">
+            <h2>没有策略，一直持仓的盈利数据</h2>
+            <div class="batch-summary-metrics">
+              <div>
+                <span>有效样本</span>
+                <strong>{{ watchlistBacktestSummary.benchmark.count }} 只</strong>
+              </div>
+              <div>
+                <span>平均盈利</span>
+                <strong
+                  :class="
+                    performanceClass(watchlistBacktestSummary.benchmark.averageReturn)
+                  "
+                >
+                  {{
+                    formatSignedPercent(
+                      watchlistBacktestSummary.benchmark.averageReturn,
+                    )
+                  }}
+                </strong>
+              </div>
+              <div>
+                <span>盈利中位数</span>
+                <strong
+                  :class="
+                    performanceClass(watchlistBacktestSummary.benchmark.medianReturn)
+                  "
+                >
+                  {{
+                    formatSignedPercent(
+                      watchlistBacktestSummary.benchmark.medianReturn,
+                    )
+                  }}
+                </strong>
+              </div>
+              <div>
+                <span>盈利最大值</span>
+                <strong
+                  :class="
+                    performanceClass(watchlistBacktestSummary.benchmark.maxReturn)
+                  "
+                >
+                  {{ formatSignedPercent(watchlistBacktestSummary.benchmark.maxReturn) }}
+                </strong>
+              </div>
+              <div>
+                <span>盈利最小值</span>
+                <strong
+                  :class="
+                    performanceClass(watchlistBacktestSummary.benchmark.minReturn)
+                  "
+                >
+                  {{ formatSignedPercent(watchlistBacktestSummary.benchmark.minReturn) }}
+                </strong>
+              </div>
+            </div>
+          </section>
         </div>
 
         <div v-if="!watchlistBacktestResults.length" class="batch-result-empty">
@@ -140,6 +345,7 @@ defineEmits([
               <small>交易 {{ item.result.tradeCount }} 笔</small>
               <small>胜率 {{ formatPlainPercent(item.result.winRate, 1) }}</small>
               <small>买/卖 {{ item.result.buyCount }}/{{ item.result.sellCount }}</small>
+              <small>持仓 {{ formatSignedPercent(item.benchmarkReturn) }}</small>
               <small>{{ item.result.openPosition ? "当前持仓" : "当前空仓" }}</small>
             </div>
             <div v-else class="watchlist-backtest-error">

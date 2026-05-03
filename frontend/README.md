@@ -63,8 +63,12 @@ still happens at the next trading day's open.
 
 The backtest panel can open a dedicated watchlist batch-backtest page. That
 page selects one or more watchlist stocks, runs the same strategy against each
-selected stock, and displays the batch results. Those runs still fetch K-line
-rows through the backend stock API and execute through `calculateBacktest`.
+selected stock over a 1-year, 3-year, or 5-year window, and displays the batch
+results. Those runs still fetch K-line rows through the backend stock API and
+execute through `calculateBacktest`.
+The batch result header summarizes successful strategy returns and buy-and-hold
+returns with sample count, average return, median return, maximum return, and
+minimum return.
 
 ## Chart Tooltip
 

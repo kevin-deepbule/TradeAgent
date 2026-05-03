@@ -758,6 +758,61 @@ select {
   line-height: 1.35;
 }
 
+.batch-summary-groups {
+  display: grid;
+  gap: 14px;
+  border-bottom: 1px solid #edf0f5;
+  padding: 14px 0;
+}
+
+.batch-summary-group h2 {
+  margin: 0 0 10px;
+  color: #344054;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.batch-summary-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.batch-summary-metrics > div {
+  min-width: 0;
+  border: 1px solid #edf0f5;
+  border-radius: 6px;
+  background: #f7f9fc;
+  padding: 10px;
+}
+
+.batch-summary-metrics span,
+.batch-summary-metrics strong {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.batch-summary-metrics span {
+  margin-bottom: 6px;
+  color: #667085;
+  font-size: 12px;
+}
+
+.batch-summary-metrics strong {
+  color: #182230;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.batch-summary-metrics .rise {
+  color: #c43836;
+}
+
+.batch-summary-metrics .fall {
+  color: #16865d;
+}
+
 .batch-result-empty {
   border: 1px dashed #dce2ea;
   border-radius: 6px;
@@ -947,6 +1002,10 @@ select {
     min-height: 0;
   }
 
+  .batch-summary-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .watchlist-panel {
     min-height: 0;
   }
@@ -1004,6 +1063,7 @@ select {
   }
 
   .batch-result-list,
+  .batch-summary-metrics,
   .watchlist-backtest-title,
   .watchlist-backtest-metrics {
     grid-template-columns: 1fr;

@@ -11,9 +11,16 @@ import {
 } from "../services/backtest";
 import { fetchKline } from "../services/stockApi";
 
+const watchlistBacktestYearOptions = [
+  { value: 1, label: "1年" },
+  { value: 3, label: "3年" },
+  { value: 5, label: "5年" },
+];
+
 export function useBacktest({ rows, currentSymbol, currentName, watchlist }) {
   // Manage selected strategy, current result, and automatic result refreshes.
   const selectedStrategy = ref(STRATEGY_MA20);
+  const selectedWatchlistBacktestYears = ref(5);
   const backtestResult = ref(null);
   const backtestStatus = ref("");
   const selectedWatchlistSymbols = ref([]);
@@ -31,6 +38,46 @@ export function useBacktest({ rows, currentSymbol, currentName, watchlist }) {
 
   const hasResult = computed(() => Boolean(backtestResult.value));
   const selectedWatchlistCount = computed(() => selectedWatchlistSymbols.value.length);
+
+  function rowDateValue(row) {
+    // Convert K-line row dates into comparable timestamps for period filtering.
+    const timestamp = Date.parse(`${row?.date || ""}T00:00:00`);
+    return Number.isNaN(timestamp) ? null : timestamp;
+  }
+
+  function rowPriceValue(row, field) {
+    // Convert K-line row price fields into finite values for benchmark returns.
+    const price = Number(row?.[field]);
+    return Number.isFinite(price) && price > 0 ? price : null;
+  }
+
+  function filterRowsByRecentYears(klineRows, years) {
+    // Keep only rows within the selected calendar-year window ending at the latest row.
+    const latestTimestamp = klineRows
+      .slice()
+      .reverse()
+      .map(rowDateValue)
+      .find((timestamp) => timestamp !== null);
+    if (!latestTimestamp || !Number.isFinite(Number(years))) return klineRows;
+
+    const cutoffDate = new Date(latestTimestamp);
+    cutoffDate.setFullYear(cutoffDate.getFullYear() - Number(years));
+    const cutoffTimestamp = cutoffDate.getTime();
+    return klineRows.filter((row) => {
+      const timestamp = rowDateValue(row);
+      return timestamp === null || timestamp >= cutoffTimestamp;
+    });
+  }
+
+  function calculateBuyAndHoldReturn(klineRows) {
+    // Calculate no-strategy return from first open to final close in the same window.
+    const firstRow = klineRows.at(0);
+    const lastRow = klineRows.at(-1);
+    const entryPrice = rowPriceValue(firstRow, "open") ?? rowPriceValue(firstRow, "close");
+    const exitPrice = rowPriceValue(lastRow, "close") ?? rowPriceValue(lastRow, "open");
+    if (entryPrice === null || exitPrice === null) return null;
+    return ((exitPrice - entryPrice) / entryPrice) * 100;
+  }
 
   function refreshBacktestResult() {
     // Recalculate an existing backtest against the newest K-line rows.
@@ -118,14 +165,23 @@ export function useBacktest({ rows, currentSymbol, currentName, watchlist }) {
       for (const [index, item] of selectedItems.entries()) {
         try {
           const payload = await fetchKline(item.symbol);
-          const result = calculateBacktest(payload.rows || [], selectedStrategy.value, {
-            symbol: payload.symbol || item.symbol,
-            name: payload.name || item.name || "",
-          });
+          const backtestRows = filterRowsByRecentYears(
+            payload.rows || [],
+            selectedWatchlistBacktestYears.value,
+          );
+          const result = calculateBacktest(
+            backtestRows,
+            selectedStrategy.value,
+            {
+              symbol: payload.symbol || item.symbol,
+              name: payload.name || item.name || "",
+            },
+          );
           nextResults.push({
             symbol: payload.symbol || item.symbol,
             name: payload.name || item.name || "",
             result,
+            benchmarkReturn: calculateBuyAndHoldReturn(backtestRows),
             error: "",
           });
         } catch (exc) {
@@ -154,6 +210,9 @@ export function useBacktest({ rows, currentSymbol, currentName, watchlist }) {
     clearBacktest();
     clearWatchlistBacktestResults();
   });
+  watch(selectedWatchlistBacktestYears, () => {
+    clearWatchlistBacktestResults("回测周期已切换，请重新回测");
+  });
   watch(watchlist, (items) => {
     const availableSymbols = new Set(items.map((item) => item.symbol));
     selectedWatchlistSymbols.value = selectedWatchlistSymbols.value.filter((symbol) =>
@@ -166,7 +225,9 @@ export function useBacktest({ rows, currentSymbol, currentName, watchlist }) {
 
   return {
     strategyOptions,
+    watchlistBacktestYearOptions,
     selectedStrategy,
+    selectedWatchlistBacktestYears,
     selectedStrategyInfo,
     backtestResult,
     backtestStatus,
