@@ -172,12 +172,79 @@ function ratioInfo(value, base) {
   };
 }
 
+function candleTextColor(row) {
+  // Color the closing price by the candle direction in the tooltip.
+  const open = numericValue(row?.open);
+  const close = numericValue(row?.close);
+  if (open === null || close === null) return "#182230";
+  return close >= open ? "#c43836" : "#16865d";
+}
+
+function movingAverageInfo(values, index) {
+  // Return the MA value and day-over-day slope display metadata.
+  const value = numericValue(values?.[index]);
+  const previous = numericValue(values?.[index - 1]);
+  if (value === null) {
+    return {
+      value: "--",
+      slope: "--",
+      relation: "数据不足",
+      color: "#667085",
+      background: "#f2f4f7",
+    };
+  }
+  if (previous === null || previous <= 0) {
+    return {
+      value: formatTooltipNumber(value),
+      slope: "--",
+      relation: "数据不足",
+      color: "#667085",
+      background: "#f2f4f7",
+    };
+  }
+
+  const slopePercent = ((value - previous) / previous) * 100;
+  if (Math.abs(slopePercent) < 0.005) {
+    return {
+      value: formatTooltipNumber(value),
+      slope: "0.00%",
+      relation: "走平",
+      color: "#667085",
+      background: "#f2f4f7",
+    };
+  }
+  const rising = slopePercent > 0;
+  return {
+    value: formatTooltipNumber(value),
+    slope: formatSignedPercent(slopePercent),
+    relation: rising ? "上行" : "下行",
+    color: rising ? "#c43836" : "#16865d",
+    background: rising ? "#fff1f0" : "#ecfdf3",
+  };
+}
+
 function tooltipPriceCell(label, value, formatter = formatTooltipNumber) {
   // Render a compact label/value cell for OHLC data.
   return `
     <div style="display:grid;gap:1px;">
       <span style="color:#667085;font-size:10px;">${label}</span>
       <strong style="color:#182230;font-size:12px;font-weight:700;overflow-wrap:anywhere;">${formatter(value)}</strong>
+    </div>
+  `;
+}
+
+function tooltipMovingAverage(label, info) {
+  // Render a moving-average value with its day-over-day slope.
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <span style="color:#475467;font-size:11px;">${label}</span>
+      <span style="display:inline-flex;align-items:center;gap:7px;justify-content:flex-end;">
+        <strong style="color:#182230;font-size:11px;font-weight:750;">${info.value}</strong>
+        <span style="display:inline-flex;align-items:center;gap:4px;">
+          <span style="color:${info.color};font-size:11px;font-weight:750;">${info.slope}</span>
+          <span style="border-radius:999px;background:${info.background};color:${info.color};padding:1px 5px;font-size:10px;line-height:1.35;">${info.relation}</span>
+        </span>
+      </span>
     </div>
   `;
 }
@@ -195,16 +262,16 @@ function tooltipMetric(label, info) {
   `;
 }
 
-function makeTooltipFormatter(rows, volumeAverages) {
+function makeTooltipFormatter(rows, volumeAverages, movingAverages) {
   // Build the hover card content from the row data backing the chart point.
   return (params) => {
     const firstParam = Array.isArray(params) ? params[0] : params;
     const index = firstParam?.dataIndex;
     const row = rows[index];
     if (!row) return "";
-    const closeMa5 = ratioInfo(row.close, row.ma5);
-    const closeMa20 = ratioInfo(row.close, row.ma20);
-    const closeMa60 = ratioInfo(row.close, row.ma60);
+    const ma5Info = movingAverageInfo(movingAverages[5], index);
+    const ma20Info = movingAverageInfo(movingAverages[20], index);
+    const ma60Info = movingAverageInfo(movingAverages[60], index);
     const volumeMa20 = ratioInfo(row.volume, volumeAverages[index]);
 
     return `
@@ -216,7 +283,7 @@ function makeTooltipFormatter(rows, volumeAverages) {
           </div>
           <div style="text-align:right;">
             <div style="color:#667085;font-size:10px;line-height:1.25;">收盘</div>
-            <div style="color:${closeMa20.color};font-size:16px;font-weight:800;line-height:1.1;">${formatTooltipNumber(row.close)}</div>
+            <div style="color:${candleTextColor(row)};font-size:16px;font-weight:800;line-height:1.1;">${formatTooltipNumber(row.close)}</div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px;border-top:1px solid rgba(238,242,246,0.85);border-bottom:1px solid rgba(238,242,246,0.85);padding:7px 0;margin-bottom:7px;">
@@ -226,9 +293,9 @@ function makeTooltipFormatter(rows, volumeAverages) {
           ${tooltipPriceCell("成交量", row.volume, formatTooltipVolume)}
         </div>
         <div style="display:grid;gap:5px;">
-          ${tooltipMetric("收盘 / MA5", closeMa5)}
-          ${tooltipMetric("收盘 / MA20", closeMa20)}
-          ${tooltipMetric("收盘 / MA60", closeMa60)}
+          ${tooltipMovingAverage("MA5", ma5Info)}
+          ${tooltipMovingAverage("MA20", ma20Info)}
+          ${tooltipMovingAverage("MA60", ma60Info)}
           ${tooltipMetric("量能 / 20日均量", volumeMa20)}
         </div>
       </div>
@@ -328,6 +395,11 @@ export function makeKlineChartOption({
   const ma5 = rows.map((item) => item.ma5);
   const ma20 = rows.map((item) => item.ma20);
   const ma60 = rows.map((item) => item.ma60);
+  const tooltipMovingAverages = {
+    5: ma5,
+    20: ma20,
+    60: ma60,
+  };
   const overlayResults = [backtestResult, manualTradeResult].filter(Boolean);
   const strategyMarks = overlayResults.flatMap((result) =>
     backtestMarkPoints(rows, dates, result),
@@ -377,7 +449,7 @@ export function makeKlineChartOption({
           'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         fontSize: 12,
       },
-      formatter: makeTooltipFormatter(rows, volumeAverages[20]),
+      formatter: makeTooltipFormatter(rows, volumeAverages[20], tooltipMovingAverages),
     },
     axisPointer: {
       link: [{ xAxisIndex: [0, 1] }],

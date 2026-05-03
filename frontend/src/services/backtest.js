@@ -70,6 +70,16 @@ function averagePreviousVolume(data, index, days = 20) {
   return volumes.reduce((sum, value) => sum + value, 0) / volumes.length;
 }
 
+function rollingVolumeAverageAt(data, index, days = 20) {
+  // Calculate the chart-aligned rolling average volume through the current row.
+  if (index < days - 1) return null;
+  const volumes = data
+    .slice(index - days + 1, index + 1)
+    .map((item) => numericValue(item.volume));
+  if (volumes.length < days || volumes.some((value) => value === null)) return null;
+  return volumes.reduce((sum, value) => sum + value, 0) / volumes.length;
+}
+
 function dailyChangePercent(row, previous) {
   // Calculate the close-to-close daily move used by volume-price strategies.
   const close = numericValue(row?.close);
@@ -136,6 +146,8 @@ function ma20BreakoutAction(data, index, holding) {
   const ma60 = numericValue(row.ma60);
   const previousMa20 = numericValue(previous.ma20);
   const previousMa60 = numericValue(previous.ma60);
+  const volume = numericValue(row.volume);
+  const volumeMa20 = rollingVolumeAverageAt(data, index);
   if ([close, ma20, ma60, previousMa20, previousMa60].some((value) => value === null)) {
     return null;
   }
@@ -144,8 +156,12 @@ function ma20BreakoutAction(data, index, holding) {
   const ma60NotWeak = ma60 >= previousMa60 * 0.999;
 
   if (!holding) {
-    const validBreakout = close > ma20 * 1.02 && close <= ma20 * 1.05;
-    return validBreakout && ma60NotWeak ? "buy" : null;
+    const validBreakout = close > ma20 && close <= ma20 * 1.05;
+    const needsVolumeConfirmation = ma60 < previousMa60 * 1.002;
+    const volumeConfirmed =
+      !needsVolumeConfirmation ||
+      (volume !== null && volumeMa20 !== null && volume > volumeMa20 * 1.5);
+    return validBreakout && ma60NotWeak && volumeConfirmed ? "buy" : null;
   }
 
   const trendBroken = close < ma20 * 0.98;
@@ -154,7 +170,6 @@ function ma20BreakoutAction(data, index, holding) {
   const highPullbackBelowMa5 = ma5 !== null && close < ma5 * 0.995 && close > ma20 * 1.1;
   if (highPullbackBelowMa5) return "sell";
 
-  const volume = numericValue(row.volume);
   const volumeAverage = averagePreviousVolume(data, index);
   const changePercent = dailyChangePercent(row, previous);
   if ([volume, volumeAverage, changePercent].some((value) => value === null)) {

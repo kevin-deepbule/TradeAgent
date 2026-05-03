@@ -21,9 +21,14 @@ defineProps({
   selectedStrategyInfo: { type: Object, default: null },
   signalLabel: { type: Function, required: true },
   strategyOptions: { type: Array, default: () => [] },
+  watchlist: { type: Array, default: () => [] },
+  watchlistBacktestRunning: { type: Boolean, default: false },
 });
 
-defineEmits(["run-backtest"]);
+defineEmits([
+  "run-backtest",
+  "open-watchlist-backtest-page",
+]);
 </script>
 
 <template>
@@ -56,6 +61,15 @@ defineEmits(["run-backtest"]);
     >
       回测
     </button>
+    <button
+      class="backtest-run watchlist-backtest-button"
+      type="button"
+      :disabled="!watchlist.length || watchlistBacktestRunning"
+      @click="$emit('open-watchlist-backtest-page')"
+    >
+      回测选中自选股
+    </button>
+
     <p class="backtest-status">
       {{ backtestStatus || (rows.length ? "待回测" : "暂无K线数据") }}
     </p>
