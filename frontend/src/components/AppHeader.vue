@@ -1,5 +1,8 @@
 <script setup>
-// Dashboard header with stock query, watchlist add, and copy-mode actions.
+// Dashboard header with stock query, watchlist add, profile, and copy-mode actions.
+
+import { computed, ref } from "vue";
+import { readProfile, resolveAvatar } from "../services/profileStorage";
 
 const queryInput = defineModel("queryInput", { type: String, default: "" });
 
@@ -14,15 +17,38 @@ defineEmits([
   "add-watchlist",
   "set-default-stock",
   "toggle-copy-selection",
+  "open-profile",
 ]);
+
+const headerProfile = ref(readProfile());
+
+const profileDisplayName = computed(() => {
+  // Show the configured username when the profile has one.
+  return headerProfile.value.username.trim() || "个人中心";
+});
+
+const profileAvatar = computed(() => {
+  // Resolve the saved avatar into either an uploaded image or built-in default.
+  return resolveAvatar(headerProfile.value, profileDisplayName.value);
+});
+
+const profileAvatarStyle = computed(() => {
+  // Apply built-in avatar colors without affecting uploaded images.
+  if (profileAvatar.value.type === "image") return {};
+  return {
+    background: profileAvatar.value.background,
+    color: profileAvatar.value.color,
+  };
+});
 </script>
 
 <template>
   <header class="topbar">
-    <div>
+    <div class="topbar-title">
       <h1>A 股 K 线看板</h1>
       <p>后端每 60 秒刷新 AkShare 数据，前端自动同步最新缓存。</p>
     </div>
+
     <div class="header-actions">
       <form class="symbol-form" @submit.prevent="$emit('submit-query')">
         <label for="symbol">代码/名称</label>
@@ -44,5 +70,19 @@ defineEmits([
         {{ copySelectionMode ? "取消选区" : "复制K线数据" }}
       </button>
     </div>
+
+    <button
+      class="profile-button"
+      type="button"
+      :title="profileDisplayName"
+      @click="$emit('open-profile')"
+    >
+      <img
+        v-if="profileAvatar.type === 'image'"
+        :alt="profileAvatar.alt"
+        :src="profileAvatar.src"
+      />
+      <span v-else :style="profileAvatarStyle">{{ profileAvatar.text }}</span>
+    </button>
   </header>
 </template>

@@ -12,6 +12,8 @@ This directory contains the Vue 3 + Vite + ECharts dashboard.
 ## Structure Rules
 
 - `src/views/`: full-screen frontend views that compose controls and result panels.
+  The personal center view is frontend-only and stores profile data, including
+  avatar choices, in browser `localStorage` until a backend user API exists.
 - `src/components/`: display-focused Vue panels that receive props and emit user intents.
 - `src/composables/`: state, lifecycle, and dashboard workflow logic.
 - `src/services/stockApi.js`: all HTTP API calls.

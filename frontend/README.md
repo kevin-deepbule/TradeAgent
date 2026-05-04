@@ -1,7 +1,8 @@
 # TradeAgent Frontend
 
 Vue 3 + Vite + ECharts dashboard for viewing A-share K-line data, watchlists,
-trade advice, and frontend-only strategy backtests.
+trade advice, frontend-only strategy backtests, and a frontend-only personal
+center.
 
 ## Role
 
@@ -17,7 +18,8 @@ It should not call the Python AkShare adapter directly.
 
 - `src/App.vue`: dashboard shell that wires composables and panels.
 - `src/main.js`: Vue bootstrap and global error reporting.
-- `src/views/`: full-screen frontend views such as watchlist batch backtests.
+- `src/views/`: full-screen frontend views such as watchlist batch backtests
+  and the personal center.
 - `src/components/`: presentational dashboard panels.
 - `src/composables/`: state, lifecycle, and UI workflow modules.
 - `src/services/stockApi.js`: backend API wrapper.
@@ -77,6 +79,13 @@ minimum return.
 On the dashboard, the K-line chart and current advice panel live in the main
 column while the backtest panel lives in a separate side column, so long
 backtest signal lists do not push the advice panel away from the chart.
+
+## Personal Center
+
+The personal center is frontend-only. It edits avatar, username, email, and
+personal bio fields and persists them to browser `localStorage` until backend
+user APIs are introduced. The dashboard header reads the same local profile and
+shows the personal center as the top-right avatar entry.
 
 ## Chart Tooltip
 

@@ -10,6 +10,7 @@ import SummaryCards from "./components/SummaryCards.vue";
 import WatchlistPanel from "./components/WatchlistPanel.vue";
 import { useBacktest } from "./composables/useBacktest";
 import { useStockDashboard } from "./composables/useStockDashboard";
+import ProfileCenterView from "./views/ProfileCenterView.vue";
 import WatchlistBacktestView from "./views/WatchlistBacktestView.vue";
 
 const {
@@ -98,8 +99,13 @@ function openWatchlistBacktestPage() {
   activePage.value = "watchlist-backtest";
 }
 
+function openProfilePage() {
+  // Switch from market analysis to the frontend-only personal center.
+  activePage.value = "profile";
+}
+
 function backToDashboard() {
-  // Return to the main K-line dashboard without discarding batch results.
+  // Return to the main K-line dashboard without discarding local page state.
   activePage.value = "dashboard";
 }
 </script>
@@ -127,6 +133,11 @@ function backToDashboard() {
       @run-watchlist-backtest="runWatchlistBacktest"
     />
 
+    <ProfileCenterView
+      v-else-if="activePage === 'profile'"
+      @back="backToDashboard"
+    />
+
     <template v-else>
       <AppHeader
         v-model:query-input="queryInput"
@@ -137,6 +148,7 @@ function backToDashboard() {
         @add-watchlist="addToWatchlist()"
         @set-default-stock="setCurrentAsDefaultStock"
         @toggle-copy-selection="toggleCopySelection"
+        @open-profile="openProfilePage"
       />
 
       <div class="main-layout">
