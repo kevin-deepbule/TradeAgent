@@ -3,17 +3,21 @@
 import { numericValue } from "../utils/formatters";
 
 export const STRATEGY_MA20 = "ma20-cross";
-export const STRATEGY_MA20_REVERSE = "ma20-reverse";
+export const STRATEGY_LONG_PROTECT = "long-protect";
 export const STRATEGY_VOLUME_DROP = "volume-drop";
 export const STRATEGY_MA20_BREAKOUT = "ma20-breakout";
 export const STRATEGY_BOLL_BREAK = "boll-break-buy";
 
 const BOLL_WINDOW = 20;
 const BOLL_MULTIPLIER = 2;
+const PROTECT_MA60_SELL_TREND_DAYS = 10;
+const PROTECT_MA60_SELL_AVERAGE_RATIO = 0.996;
+const PROTECT_MA60_BUY_TREND_DAYS = 20;
+const PROTECT_MA60_BUY_AVERAGE_RATIO = 1.001;
 
 export const strategyOptions = [
   { id: STRATEGY_MA20, name: "20日线：站上买入，跌破卖出" },
-  { id: STRATEGY_MA20_REVERSE, name: "反向MA20趋势跟随：跌破买入，站上卖出" },
+  { id: STRATEGY_LONG_PROTECT, name: "长期持有：MA60趋势避险与修复" },
   { id: STRATEGY_VOLUME_DROP, name: "放量急跌买入，放量卖出" },
   {
     id: STRATEGY_MA20_BREAKOUT,
@@ -88,6 +92,20 @@ function dailyChangePercent(row, previous) {
   const previousClose = numericValue(previous?.close);
   if (close === null || previousClose === null || previousClose <= 0) return null;
   return ((close - previousClose) / previousClose) * 100;
+}
+
+function ma60AverageRatio(data, index, days) {
+  // Measure the recent MA60 direction using completed day-to-day MA60 changes.
+  if (index < days) return null;
+  const values = data
+    .slice(index - days, index + 1)
+    .map((item) => numericValue(item.ma60));
+  if (values.length < days + 1 || values.some((value) => value === null || value <= 0)) {
+    return null;
+  }
+
+  const ratios = values.slice(1).map((value, offset) => value / values[offset]);
+  return ratios.reduce((sum, value) => sum + value, 0) / ratios.length;
 }
 
 function bollBandAt(data, index) {
@@ -184,6 +202,32 @@ function ma20BreakoutAction(data, index, holding) {
   return trendStillHealthy && overheated && volumeStall ? "sell" : null;
 }
 
+function longProtectAction(data, index, holding) {
+  // Keep a core long position and trade only when MA60 trend windows confirm.
+  const sellAverageRatio = ma60AverageRatio(
+    data,
+    index,
+    PROTECT_MA60_SELL_TREND_DAYS,
+  );
+  const buyAverageRatio = ma60AverageRatio(data, index, PROTECT_MA60_BUY_TREND_DAYS);
+
+  if (
+    holding &&
+    sellAverageRatio !== null &&
+    sellAverageRatio <= PROTECT_MA60_SELL_AVERAGE_RATIO
+  ) {
+    return "sell";
+  }
+  if (
+    !holding &&
+    buyAverageRatio !== null &&
+    buyAverageRatio >= PROTECT_MA60_BUY_AVERAGE_RATIO
+  ) {
+    return "buy";
+  }
+  return null;
+}
+
 function strategyAction(strategyId, data, index, holding, entry) {
   // Return only a signal; calculateBacktest applies next-open and limit rules.
   const row = data[index];
@@ -199,13 +243,8 @@ function strategyAction(strategyId, data, index, holding, entry) {
     return null;
   }
 
-  if (strategyId === STRATEGY_MA20_REVERSE) {
-    const close = numericValue(row.close);
-    const ma20 = numericValue(row.ma20);
-    if ([close, ma20].some((value) => value === null)) return null;
-    if (!holding && close < ma20) return "buy";
-    if (holding && close > ma20) return "sell";
-    return null;
+  if (strategyId === STRATEGY_LONG_PROTECT) {
+    return longProtectAction(data, index, holding);
   }
 
   if (strategyId === STRATEGY_VOLUME_DROP) {
@@ -247,6 +286,37 @@ function calculateMaxDrawdown(equityCurve) {
   return maxDrawdown * 100;
 }
 
+function shouldStartFullyInvested(strategyId) {
+  // Identify strategies whose baseline state is full long exposure.
+  return strategyId === STRATEGY_LONG_PROTECT;
+}
+
+function enterInitialLong(row, index, state) {
+  // Open the initial full position for long-hold strategies at the first open.
+  const openPrice = numericValue(row.open);
+  const closePrice = numericValue(row.close);
+  const entryPrice = openPrice ?? closePrice;
+  if (entryPrice === null || entryPrice <= 0) return false;
+
+  state.shares = state.capital / entryPrice;
+  state.holding = true;
+  state.entry = {
+    index,
+    date: row.date,
+    price: entryPrice,
+    signalDate: row.date,
+  };
+  state.activeRange = { startIndex: index, endIndex: index };
+  state.signals.push({
+    type: "buy",
+    index,
+    date: row.date,
+    price: entryPrice,
+    signalDate: row.date,
+  });
+  return true;
+}
+
 export function calculateBacktest(data, strategyId, stock = {}) {
   // Centralize all strategy execution at the next tradable open with limit checks.
   const strategy = strategyOptions.find((item) => item.id === strategyId);
@@ -265,6 +335,16 @@ export function calculateBacktest(data, strategyId, stock = {}) {
   let blockedSellCount = 0;
 
   data.forEach((row, index) => {
+    if (index === 0 && shouldStartFullyInvested(strategyId)) {
+      const state = { capital, shares, holding, entry, activeRange, signals };
+      if (enterInitialLong(row, index, state)) {
+        shares = state.shares;
+        holding = state.holding;
+        entry = state.entry;
+        activeRange = state.activeRange;
+      }
+    }
+
     const previous = data[index - 1];
     const openPrice = numericValue(row.open);
     const closePrice = numericValue(row.close);
