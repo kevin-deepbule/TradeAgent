@@ -160,35 +160,39 @@ function backToDashboard() {
             :status-text="statusText"
           />
 
-          <KlineChartPanel
-            :backtest-result="backtestResult"
-            :current-symbol="currentSymbol"
-            :copy-selection-mode="copySelectionMode"
-            :copy-start-index="copyStartIndex"
-            :error="error"
-            :rows="rows"
-            @stop-copy-selection="stopCopySelection"
-            @pick-copy-start="pickCopyStart"
-            @copy-range="copyRowsInRange"
-          />
+          <div class="main-column">
+            <KlineChartPanel
+              :backtest-result="backtestResult"
+              :current-symbol="currentSymbol"
+              :copy-selection-mode="copySelectionMode"
+              :copy-start-index="copyStartIndex"
+              :error="error"
+              :rows="rows"
+              @stop-copy-selection="stopCopySelection"
+              @pick-copy-start="pickCopyStart"
+              @copy-range="copyRowsInRange"
+            />
 
-          <BacktestPanel
-            v-model:selected-strategy="selectedStrategy"
-            :backtest-result="backtestResult"
-            :backtest-status="backtestStatus"
-            :display-signals="displayBacktestSignals"
-            :performance-class="performanceClass"
-            :rows="rows"
-            :selected-strategy-info="selectedStrategyInfo"
-            :signal-label="signalLabel"
-            :strategy-options="strategyOptions"
-            :watchlist="watchlist"
-            :watchlist-backtest-running="watchlistBacktestRunning"
-            @run-backtest="runBacktest"
-            @open-watchlist-backtest-page="openWatchlistBacktestPage"
-          />
+            <AdvicePanel :advice="advice" :advice-action-class="adviceActionClass" />
+          </div>
 
-          <AdvicePanel :advice="advice" :advice-action-class="adviceActionClass" />
+          <div class="side-column">
+            <BacktestPanel
+              v-model:selected-strategy="selectedStrategy"
+              :backtest-result="backtestResult"
+              :backtest-status="backtestStatus"
+              :display-signals="displayBacktestSignals"
+              :performance-class="performanceClass"
+              :rows="rows"
+              :selected-strategy-info="selectedStrategyInfo"
+              :signal-label="signalLabel"
+              :strategy-options="strategyOptions"
+              :watchlist="watchlist"
+              :watchlist-backtest-running="watchlistBacktestRunning"
+              @run-backtest="runBacktest"
+              @open-watchlist-backtest-page="openWatchlistBacktestPage"
+            />
+          </div>
         </div>
       </div>
     </template>

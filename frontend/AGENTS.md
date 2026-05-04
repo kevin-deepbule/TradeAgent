@@ -19,12 +19,14 @@ This directory contains the Vue 3 + Vite + ECharts dashboard.
 - `src/charts/klineChartOption.js`: ECharts option shape.
 - `src/utils/formatters.js`: numeric, percent, and clipboard export formatting.
 - `src/style.css`: shared dashboard styling; reuse existing class names before adding new visual systems.
+- The dashboard keeps the K-line chart and advice panel in the main column and the backtest panel in a separate side column, so long backtest signal lists do not push the advice panel away from the chart.
 
 ## Backtest Rules
 
 - Backtests use the K-line `rows` returned by the backend.
 - Watchlist batch backtests run on a dedicated frontend page; that page fetches each selected stock's K-line rows through the backend stock API, filters them to the selected 1-year, 3-year, or 5-year window, and then executes through `calculateBacktest`.
 - The watchlist batch result header summarizes successful strategy returns and buy-and-hold returns with sample count, average return, median return, maximum return, and minimum return.
+- `反向MA20趋势跟随：跌破买入，站上卖出` buys only when not holding and close is below MA20; it sells only when holding and close is above MA20.
 - `MA20趋势跟随：有效突破` buys only when the close is above MA20, no higher than `MA20 * 1.05`, and MA60 is at least 99.9% of the previous MA60; if MA60 is below `previous MA60 * 1.002`, same-day volume must also be greater than `volume MA20 * 1.5`.
 - All strategies must execute through `calculateBacktest` in `src/services/backtest.js`.
 - Individual strategy helpers should return only `buy`, `sell`, or `null`.

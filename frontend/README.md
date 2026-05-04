@@ -56,10 +56,13 @@ npm --prefix frontend run build
 ## Backtests
 
 Strategy backtests run in `src/services/backtest.js` from the K-line `rows`
-returned by the backend. `MA20趋势跟随：有效突破` buys only after the close is
-above MA20, no higher than `MA20 * 1.05`, with non-weak MA60. Same-day volume must be greater than
-`volume MA20 * 1.5` only when MA60 is below `previous MA60 * 1.002`; execution
-still happens at the next trading day's open.
+returned by the backend. `反向MA20趋势跟随：跌破买入，站上卖出` buys only when
+not holding and close is below MA20; it sells only when holding and close is
+above MA20. `MA20趋势跟随：有效突破` buys only after the close is above MA20,
+no higher than `MA20 * 1.05`, with non-weak MA60. Same-day volume must be
+greater than `volume MA20 * 1.5` only when MA60 is below
+`previous MA60 * 1.002`; execution still happens at the next trading day's
+open.
 
 The backtest panel can open a dedicated watchlist batch-backtest page. That
 page selects one or more watchlist stocks, runs the same strategy against each
@@ -69,6 +72,10 @@ execute through `calculateBacktest`.
 The batch result header summarizes successful strategy returns and buy-and-hold
 returns with sample count, average return, median return, maximum return, and
 minimum return.
+
+On the dashboard, the K-line chart and current advice panel live in the main
+column while the backtest panel lives in a separate side column, so long
+backtest signal lists do not push the advice panel away from the chart.
 
 ## Chart Tooltip
 

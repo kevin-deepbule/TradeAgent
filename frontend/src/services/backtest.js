@@ -3,6 +3,7 @@
 import { numericValue } from "../utils/formatters";
 
 export const STRATEGY_MA20 = "ma20-cross";
+export const STRATEGY_MA20_REVERSE = "ma20-reverse";
 export const STRATEGY_VOLUME_DROP = "volume-drop";
 export const STRATEGY_MA20_BREAKOUT = "ma20-breakout";
 export const STRATEGY_BOLL_BREAK = "boll-break-buy";
@@ -12,6 +13,7 @@ const BOLL_MULTIPLIER = 2;
 
 export const strategyOptions = [
   { id: STRATEGY_MA20, name: "20日线：站上买入，跌破卖出" },
+  { id: STRATEGY_MA20_REVERSE, name: "反向MA20趋势跟随：跌破买入，站上卖出" },
   { id: STRATEGY_VOLUME_DROP, name: "放量急跌买入，放量卖出" },
   {
     id: STRATEGY_MA20_BREAKOUT,
@@ -194,6 +196,15 @@ function strategyAction(strategyId, data, index, holding, entry) {
     if ([close, ma20].some((value) => value === null)) return null;
     if (!holding && close > ma20) return "buy";
     if (holding && close < ma20) return "sell";
+    return null;
+  }
+
+  if (strategyId === STRATEGY_MA20_REVERSE) {
+    const close = numericValue(row.close);
+    const ma20 = numericValue(row.ma20);
+    if ([close, ma20].some((value) => value === null)) return null;
+    if (!holding && close < ma20) return "buy";
+    if (holding && close > ma20) return "sell";
     return null;
   }
 
