@@ -13,7 +13,8 @@ const BOLL_MULTIPLIER = 2;
 const PROTECT_MA60_SELL_TREND_DAYS = 10;
 const PROTECT_MA60_SELL_AVERAGE_RATIO = 0.996;
 const PROTECT_MA60_BUY_TREND_DAYS = 20;
-const PROTECT_MA60_BUY_AVERAGE_RATIO = 1.001;
+const PROTECT_MA60_BUY_AVERAGE_RATIO = 1.002;
+const PROTECT_RECENT_SELL_BLOCK_DAYS = 50;
 
 export const strategyOptions = [
   { id: STRATEGY_MA20, name: "20日线：站上买入，跌破卖出" },
@@ -94,18 +95,29 @@ function dailyChangePercent(row, previous) {
   return ((close - previousClose) / previousClose) * 100;
 }
 
-function ma60AverageRatio(data, index, days) {
-  // Measure the recent MA60 direction using completed day-to-day MA60 changes.
+function movingAverageRatio(data, index, days, fieldName) {
+  // Measure a moving average's recent direction using completed day-to-day changes.
   if (index < days) return null;
   const values = data
     .slice(index - days, index + 1)
-    .map((item) => numericValue(item.ma60));
+    .map((item) => numericValue(item[fieldName]));
   if (values.length < days + 1 || values.some((value) => value === null || value <= 0)) {
     return null;
   }
 
   const ratios = values.slice(1).map((value, offset) => value / values[offset]);
   return ratios.reduce((sum, value) => sum + value, 0) / ratios.length;
+}
+
+function hasRecentClosedSell(trades, index, days) {
+  // Check whether a completed sell execution sits inside the recent cooldown window.
+  return trades.some(
+    (trade) =>
+      !trade.isOpen &&
+      Number.isInteger(trade.exitIndex) &&
+      trade.exitIndex <= index &&
+      index - trade.exitIndex <= days,
+  );
 }
 
 function bollBandAt(data, index) {
@@ -202,24 +214,31 @@ function ma20BreakoutAction(data, index, holding) {
   return trendStillHealthy && overheated && volumeStall ? "sell" : null;
 }
 
-function longProtectAction(data, index, holding) {
-  // Keep a core long position and trade only when MA60 trend windows confirm.
-  const sellAverageRatio = ma60AverageRatio(
+function longProtectAction(data, index, holding, trades) {
+  // Keep a core long position and use MA60 trend windows for protection.
+  const ma60SellAverageRatio = movingAverageRatio(
     data,
     index,
     PROTECT_MA60_SELL_TREND_DAYS,
+    "ma60",
   );
-  const buyAverageRatio = ma60AverageRatio(data, index, PROTECT_MA60_BUY_TREND_DAYS);
+  const buyAverageRatio = movingAverageRatio(
+    data,
+    index,
+    PROTECT_MA60_BUY_TREND_DAYS,
+    "ma60",
+  );
 
   if (
     holding &&
-    sellAverageRatio !== null &&
-    sellAverageRatio <= PROTECT_MA60_SELL_AVERAGE_RATIO
+    ma60SellAverageRatio !== null &&
+    ma60SellAverageRatio <= PROTECT_MA60_SELL_AVERAGE_RATIO
   ) {
     return "sell";
   }
   if (
     !holding &&
+    !hasRecentClosedSell(trades, index, PROTECT_RECENT_SELL_BLOCK_DAYS) &&
     buyAverageRatio !== null &&
     buyAverageRatio >= PROTECT_MA60_BUY_AVERAGE_RATIO
   ) {
@@ -228,7 +247,7 @@ function longProtectAction(data, index, holding) {
   return null;
 }
 
-function strategyAction(strategyId, data, index, holding, entry) {
+function strategyAction(strategyId, data, index, holding, entry, trades = []) {
   // Return only a signal; calculateBacktest applies next-open and limit rules.
   const row = data[index];
   const previous = data[index - 1];
@@ -244,7 +263,7 @@ function strategyAction(strategyId, data, index, holding, entry) {
   }
 
   if (strategyId === STRATEGY_LONG_PROTECT) {
-    return longProtectAction(data, index, holding);
+    return longProtectAction(data, index, holding, trades);
   }
 
   if (strategyId === STRATEGY_VOLUME_DROP) {
@@ -413,7 +432,7 @@ export function calculateBacktest(data, strategyId, stock = {}) {
 
     const action =
       !pendingOrder && index < data.length - 1
-        ? strategyAction(strategyId, data, index, holding, entry)
+        ? strategyAction(strategyId, data, index, holding, entry, trades)
         : null;
     if (action) {
       pendingOrder = { type: action, signalIndex: index, signalDate: row.date };

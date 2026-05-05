@@ -28,7 +28,7 @@ This directory contains the Vue 3 + Vite + ECharts dashboard.
 - Backtests use the K-line `rows` returned by the backend.
 - Watchlist batch backtests run on a dedicated frontend page; that page fetches each selected stock's K-line rows through the backend stock API, filters them to the selected 1-year, 3-year, or 5-year window, and then executes through `calculateBacktest`.
 - The watchlist batch result header summarizes successful strategy returns and buy-and-hold returns with sample count, average return, median return, maximum return, and minimum return.
-- `长期持有：MA60趋势避险与修复` starts fully invested from the first returned row; when holding, the average of the last 10 day-to-day MA60 ratios at or below 0.996 signals sell; when not holding, the average of the last 20 day-to-day MA60 ratios at or above 1.001 signals buy.
+- `长期持有：MA60趋势避险与修复` starts fully invested from the first returned row; when holding, the average of the last 10 day-to-day MA60 ratios at or below 0.996 signals sell; when not holding, the average of the last 20 day-to-day MA60 ratios at or above 1.002 signals buy only if no sell execution happened in the last 50 trading days.
 - `MA20趋势跟随：有效突破` buys only when the close is above MA20, no higher than `MA20 * 1.05`, and MA60 is at least 99.9% of the previous MA60; if MA60 is below `previous MA60 * 1.002`, same-day volume must also be greater than `volume MA20 * 1.5`.
 - All strategies must execute through `calculateBacktest` in `src/services/backtest.js`.
 - Individual strategy helpers should return only `buy`, `sell`, or `null`.

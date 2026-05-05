@@ -61,7 +61,8 @@ Strategy backtests run in `src/services/backtest.js` from the K-line `rows`
 returned by the backend. `长期持有：MA60趋势避险与修复` starts fully invested from
 the first returned row. It sells when the average of the last 10 day-to-day
 MA60 ratios is at or below 0.996, and buys back when the average of the last 20
-day-to-day MA60 ratios is at or above 1.001. `MA20趋势跟随：有效突破` buys only
+day-to-day MA60 ratios is at or above 1.002 only if no sell execution happened
+in the last 50 trading days. `MA20趋势跟随：有效突破` buys only
 after the close is above MA20, no higher than `MA20 * 1.05`, with non-weak
 MA60. Same-day volume must be greater than `volume MA20 * 1.5` only when MA60
 is below `previous MA60 * 1.002`; execution still happens at the next trading
