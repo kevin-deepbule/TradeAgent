@@ -47,9 +47,8 @@ python3 -m pip install -r requirements.txt
 Run the AkShare adapter:
 
 ```bash
-mkdir -p .logs
 source .venv/bin/activate
-python3 -m akshare_adapter.server 2>&1 | tee .logs/akshare-adapter.log
+mkdir -p .logs && setsid python3 -m akshare_adapter.server > .logs/akshare-adapter.log 2>&1 < /dev/null &
 ```
 
 Start optional backend infrastructure:
@@ -80,6 +79,8 @@ Default local endpoints:
 - Backend health: `http://localhost:8001/api/health`
 - AkShare adapter health: `http://localhost:8002/internal/health`
 - RabbitMQ management, when Docker infrastructure is running: `http://localhost:15672`
+
+Adapter logs are written to `.logs/akshare-adapter.log`.
 
 ## Verification
 

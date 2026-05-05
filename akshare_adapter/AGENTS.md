@@ -36,9 +36,8 @@ Starting points:
 Run locally:
 
 ```bash
-mkdir -p .logs
 source .venv/bin/activate
-python3 -m akshare_adapter.server 2>&1 | tee .logs/akshare-adapter.log
+mkdir -p .logs && setsid python3 -m akshare_adapter.server > .logs/akshare-adapter.log 2>&1 < /dev/null &
 ```
 
 Compile check:

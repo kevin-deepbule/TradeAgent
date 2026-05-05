@@ -30,9 +30,8 @@ python3 -m pip install -r requirements.txt
 ## Run
 
 ```bash
-mkdir -p .logs
 source .venv/bin/activate
-python3 -m akshare_adapter.server 2>&1 | tee .logs/akshare-adapter.log
+mkdir -p .logs && setsid python3 -m akshare_adapter.server > .logs/akshare-adapter.log 2>&1 < /dev/null &
 ```
 
 Defaults:
@@ -40,6 +39,8 @@ Defaults:
 - Host: `127.0.0.1`
 - Port: `8002`
 - Health: `http://localhost:8002/internal/health`
+
+Logs are written to `.logs/akshare-adapter.log`.
 
 ## Check
 
