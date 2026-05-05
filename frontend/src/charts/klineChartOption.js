@@ -4,7 +4,7 @@ import { formatSignedPercent, numericValue } from "../utils/formatters";
 import { signalLabel } from "../services/backtest";
 
 const DEFAULT_VISIBLE_COUNT = 120;
-const BOLL_WINDOW = 20;
+const BOLL_WINDOW = 60;
 const BOLL_MULTIPLIER = 2;
 const VOLUME_MA_WINDOWS = [5, 20, 60];
 const MOVING_AVERAGE_COLORS = {
@@ -41,7 +41,7 @@ function normalizeZoomRange(dates, zoomRange) {
 }
 
 function calculateBollBands(rows) {
-  // Calculate BOLL(20, 2) upper and lower bands from closing prices.
+  // Calculate BOLL(60, 2) upper and lower bands from closing prices.
   const closes = rows.map((item) => numericValue(item.close));
   const upper = [];
   const lower = [];

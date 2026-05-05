@@ -8,8 +8,9 @@ export const STRATEGY_VOLUME_DROP = "volume-drop";
 export const STRATEGY_MA20_BREAKOUT = "ma20-breakout";
 export const STRATEGY_BOLL_BREAK = "boll-break-buy";
 
-const BOLL_WINDOW = 20;
+const BOLL_WINDOW = 60;
 const BOLL_MULTIPLIER = 2;
+const BOLL_MAX_HOLD_DAYS = 90;
 const PROTECT_MA60_SELL_TREND_DAYS = 10;
 const PROTECT_MA60_SELL_AVERAGE_RATIO = 0.996;
 const PROTECT_MA60_BUY_TREND_DAYS = 20;
@@ -95,6 +96,12 @@ function dailyChangePercent(row, previous) {
   return ((close - previousClose) / previousClose) * 100;
 }
 
+function isLimitUpClose(row, previous, limitPercent) {
+  // Treat a near-limit-up close as a day that should suppress sell signals.
+  const changePercent = dailyChangePercent(row, previous);
+  return changePercent !== null && changePercent >= limitPercent - 0.2;
+}
+
 function movingAverageRatio(data, index, days, fieldName) {
   // Measure a moving average's recent direction using completed day-to-day changes.
   if (index < days) return null;
@@ -121,7 +128,7 @@ function hasRecentClosedSell(trades, index, days) {
 }
 
 function bollBandAt(data, index) {
-  // Calculate the BOLL(20, 2) upper and lower bands for a completed row.
+  // Calculate the BOLL(60, 2) upper and lower bands for a completed row.
   if (index < BOLL_WINDOW - 1) return null;
   const closes = data
     .slice(index - BOLL_WINDOW + 1, index + 1)
@@ -137,32 +144,28 @@ function bollBandAt(data, index) {
   return { upper: middle + offset, lower: middle - offset };
 }
 
-function bollBreakAction(data, index, holding, entry) {
-  // Buy on lower-band close; sell on upper break, time stop, or 20% loss.
-  if (index < 1) return null;
+function bollBreakAction(data, index, holding, entry, limitPercent) {
+  // Use same-day BOLL touches with MA60 close filters and a max holding window.
   const row = data[index];
   const previous = data[index - 1];
+  if (holding && isLimitUpClose(row, previous, limitPercent)) return null;
+
+  const holdingDays = entry ? index - entry.index + 1 : 0;
+  if (holding && holdingDays > BOLL_MAX_HOLD_DAYS) return "sell";
+
   const close = numericValue(row?.close);
+  const low = numericValue(row?.low);
   const high = numericValue(row?.high);
-  const previousClose = numericValue(previous?.close);
-  const previousHigh = numericValue(previous?.high);
+  const ma60 = numericValue(row?.ma60);
   const band = bollBandAt(data, index);
-  const previousBand = bollBandAt(data, index - 1);
-  if (
-    [close, high, previousClose, previousHigh].some((value) => value === null) ||
-    !band ||
-    !previousBand
-  ) {
+  if ([close, low, high, ma60].some((value) => value === null) || !band) {
     return null;
   }
 
-  const crossesBelowLower = previousClose >= previousBand.lower && close < band.lower;
-  const highBreaksUpper = previousHigh <= previousBand.upper && high > band.upper;
-  const holdingDays = entry ? index - entry.index + 1 : 0;
-  const heldOverThirtyDays = holdingDays > 30;
-  const stopLoss = entry ? close < entry.price * 0.8 : false;
-  if (!holding && crossesBelowLower) return "buy";
-  if (holding && (highBreaksUpper || heldOverThirtyDays || stopLoss)) return "sell";
+  const lowerTouchWithWeakClose = low < band.lower && close < ma60;
+  const upperTouchWithStrongClose = high > band.upper && close > ma60;
+  if (!holding && lowerTouchWithWeakClose) return "buy";
+  if (holding && upperTouchWithStrongClose) return "sell";
   return null;
 }
 
@@ -247,7 +250,7 @@ function longProtectAction(data, index, holding, trades) {
   return null;
 }
 
-function strategyAction(strategyId, data, index, holding, entry, trades = []) {
+function strategyAction(strategyId, data, index, holding, entry, trades = [], limitPercent = 10) {
   // Return only a signal; calculateBacktest applies next-open and limit rules.
   const row = data[index];
   const previous = data[index - 1];
@@ -286,7 +289,7 @@ function strategyAction(strategyId, data, index, holding, entry, trades = []) {
   }
 
   if (strategyId === STRATEGY_BOLL_BREAK) {
-    return bollBreakAction(data, index, holding, entry);
+    return bollBreakAction(data, index, holding, entry, limitPercent);
   }
 
   return null;
@@ -432,7 +435,7 @@ export function calculateBacktest(data, strategyId, stock = {}) {
 
     const action =
       !pendingOrder && index < data.length - 1
-        ? strategyAction(strategyId, data, index, holding, entry, trades)
+        ? strategyAction(strategyId, data, index, holding, entry, trades, limitPercent)
         : null;
     if (action) {
       pendingOrder = { type: action, signalIndex: index, signalDate: row.date };
