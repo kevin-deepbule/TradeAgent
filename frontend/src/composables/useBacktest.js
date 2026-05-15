@@ -69,14 +69,34 @@ export function useBacktest({ rows, currentSymbol, currentName, watchlist }) {
     });
   }
 
-  function calculateBuyAndHoldReturn(klineRows) {
-    // Calculate no-strategy return from first open to final close in the same window.
+  function calculateBuyAndHoldMetrics(klineRows) {
+    // Calculate no-strategy return and max drawdown for the selected window.
     const firstRow = klineRows.at(0);
     const lastRow = klineRows.at(-1);
     const entryPrice = rowPriceValue(firstRow, "open") ?? rowPriceValue(firstRow, "close");
     const exitPrice = rowPriceValue(lastRow, "close") ?? rowPriceValue(lastRow, "open");
-    if (entryPrice === null || exitPrice === null) return null;
-    return ((exitPrice - entryPrice) / entryPrice) * 100;
+    if (entryPrice === null || exitPrice === null) {
+      return { totalReturn: null, maxDrawdown: null };
+    }
+
+    let peakEquity = 1;
+    let maxDrawdown = 0;
+    klineRows.forEach((row, index) => {
+      const price =
+        index === 0
+          ? entryPrice
+          : rowPriceValue(row, "close") ?? rowPriceValue(row, "open");
+      if (price === null) return;
+      const equity = price / entryPrice;
+      peakEquity = Math.max(peakEquity, equity);
+      const drawdown = peakEquity > 0 ? equity / peakEquity - 1 : 0;
+      maxDrawdown = Math.min(maxDrawdown, drawdown);
+    });
+
+    return {
+      totalReturn: ((exitPrice - entryPrice) / entryPrice) * 100,
+      maxDrawdown: maxDrawdown * 100,
+    };
   }
 
   function refreshBacktestResult() {
@@ -177,11 +197,13 @@ export function useBacktest({ rows, currentSymbol, currentName, watchlist }) {
               name: payload.name || item.name || "",
             },
           );
+          const benchmark = calculateBuyAndHoldMetrics(backtestRows);
           nextResults.push({
             symbol: payload.symbol || item.symbol,
             name: payload.name || item.name || "",
             result,
-            benchmarkReturn: calculateBuyAndHoldReturn(backtestRows),
+            benchmarkReturn: benchmark.totalReturn,
+            benchmarkMaxDrawdown: benchmark.maxDrawdown,
             error: "",
           });
         } catch (exc) {

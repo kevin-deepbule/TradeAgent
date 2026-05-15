@@ -74,9 +74,9 @@ page selects one or more watchlist stocks, runs the same strategy against each
 selected stock over a 1-year, 3-year, or 5-year window, and displays the batch
 results. Those runs still fetch K-line rows through the backend stock API and
 execute through `calculateBacktest`.
-The batch result header summarizes successful strategy returns and buy-and-hold
-returns with sample count, average return, median return, maximum return, and
-minimum return.
+The batch result header summarizes successful strategy and buy-and-hold metrics
+with sample count, average return, median return, maximum return, minimum
+return, maximum drawdown, and average drawdown.
 
 On the dashboard, the K-line chart and current advice panel live in the main
 column while the backtest panel lives in a separate side column, so long

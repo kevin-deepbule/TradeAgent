@@ -30,8 +30,8 @@ const props = defineProps({
   watchlistBacktestStatus: { type: String, default: "" },
 });
 
-function validReturnValues(results, valueForItem) {
-  // Collect finite return values from successful batch backtest records.
+function validMetricValues(results, valueForItem) {
+  // Collect finite numeric values from successful batch backtest records.
   return results
     .map(valueForItem)
     .filter((value) => Number.isFinite(Number(value)))
@@ -39,7 +39,7 @@ function validReturnValues(results, valueForItem) {
 }
 
 function average(values) {
-  // Calculate the arithmetic mean for an existing list of return percentages.
+  // Calculate the arithmetic mean for an existing list of percentages.
   return values.reduce((total, value) => total + value, 0) / values.length;
 }
 
@@ -51,8 +51,8 @@ function median(values) {
   return (sortedValues[middleIndex - 1] + sortedValues[middleIndex]) / 2;
 }
 
-function summarizeReturns(returns) {
-  // Build the shared summary shape for strategy and benchmark return groups.
+function summarizePerformance(returns, drawdowns) {
+  // Build the shared summary shape for strategy and benchmark performance groups.
   if (!returns.length) {
     return {
       count: 0,
@@ -60,6 +60,8 @@ function summarizeReturns(returns) {
       medianReturn: null,
       maxReturn: null,
       minReturn: null,
+      maxDrawdown: null,
+      averageDrawdown: null,
     };
   }
   return {
@@ -68,22 +70,32 @@ function summarizeReturns(returns) {
     medianReturn: median(returns),
     maxReturn: Math.max(...returns),
     minReturn: Math.min(...returns),
+    maxDrawdown: drawdowns.length ? Math.min(...drawdowns) : null,
+    averageDrawdown: drawdowns.length ? average(drawdowns) : null,
   };
 }
 
 const watchlistBacktestSummary = computed(() => {
-  // Summarize strategy and buy-and-hold returns for the result header.
-  const strategyReturns = validReturnValues(
+  // Summarize strategy and buy-and-hold returns/drawdowns for the result header.
+  const strategyReturns = validMetricValues(
     props.watchlistBacktestResults,
     (item) => item.result?.totalReturn,
   );
-  const benchmarkReturns = validReturnValues(
+  const strategyDrawdowns = validMetricValues(
+    props.watchlistBacktestResults,
+    (item) => item.result?.maxDrawdown,
+  );
+  const benchmarkReturns = validMetricValues(
     props.watchlistBacktestResults,
     (item) => item.benchmarkReturn,
   );
+  const benchmarkDrawdowns = validMetricValues(
+    props.watchlistBacktestResults,
+    (item) => item.benchmarkMaxDrawdown,
+  );
   return {
-    strategy: summarizeReturns(strategyReturns),
-    benchmark: summarizeReturns(benchmarkReturns),
+    strategy: summarizePerformance(strategyReturns, strategyDrawdowns),
+    benchmark: summarizePerformance(benchmarkReturns, benchmarkDrawdowns),
   };
 });
 
@@ -263,6 +275,22 @@ defineEmits([
                   {{ formatSignedPercent(watchlistBacktestSummary.strategy.minReturn) }}
                 </strong>
               </div>
+              <div>
+                <span>最大回撤</span>
+                <strong>
+                  {{ formatPlainPercent(watchlistBacktestSummary.strategy.maxDrawdown) }}
+                </strong>
+              </div>
+              <div>
+                <span>平均回撤</span>
+                <strong>
+                  {{
+                    formatPlainPercent(
+                      watchlistBacktestSummary.strategy.averageDrawdown,
+                    )
+                  }}
+                </strong>
+              </div>
             </div>
           </section>
 
@@ -321,6 +349,22 @@ defineEmits([
                   {{ formatSignedPercent(watchlistBacktestSummary.benchmark.minReturn) }}
                 </strong>
               </div>
+              <div>
+                <span>最大回撤</span>
+                <strong>
+                  {{ formatPlainPercent(watchlistBacktestSummary.benchmark.maxDrawdown) }}
+                </strong>
+              </div>
+              <div>
+                <span>平均回撤</span>
+                <strong>
+                  {{
+                    formatPlainPercent(
+                      watchlistBacktestSummary.benchmark.averageDrawdown,
+                    )
+                  }}
+                </strong>
+              </div>
             </div>
           </section>
         </div>
@@ -346,6 +390,7 @@ defineEmits([
               <small>胜率 {{ formatPlainPercent(item.result.winRate, 1) }}</small>
               <small>买/卖 {{ item.result.buyCount }}/{{ item.result.sellCount }}</small>
               <small>持仓 {{ formatSignedPercent(item.benchmarkReturn) }}</small>
+              <small>持仓回撤 {{ formatPlainPercent(item.benchmarkMaxDrawdown) }}</small>
               <small>{{ item.result.openPosition ? "当前持仓" : "当前空仓" }}</small>
             </div>
             <div v-else class="watchlist-backtest-error">
