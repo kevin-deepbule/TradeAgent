@@ -12,9 +12,9 @@ This directory contains the DDD-oriented Spring Boot backend.
 ## Structure Rules
 
 - `trade-api/`: public REST API contracts and DTO payload classes.
-- `trade-app/`: application entrypoint and runtime properties.
+- `trade-app/`: application entrypoint, runtime properties, and MyBatis XML mapper resources.
 - `trade-domain/`: domain services and ports; do not depend on infrastructure implementations from here.
-- `trade-infrastructure/`: PostgreSQL persistence, in-memory cache, AkShare adapter HTTP client, datasource, and REST client beans.
+- `trade-infrastructure/`: PostgreSQL persistence, MyBatis mapper interfaces, in-memory cache, AkShare adapter HTTP client, datasource, and REST client beans.
 - `trade-trigger/`: concrete Spring Web controllers, exception translation, CORS, WebSocket endpoint, startup initialization, and scheduled tasks.
 - `trade-types/`: typed config and small shared utilities.
 - `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
@@ -84,6 +84,7 @@ curl --noproxy '*' http://localhost:8001/api/stocks/000001/kline
 
 - Default backend port is `8001`.
 - Default adapter base URL is `http://localhost:8002`.
+- MyBatis XML mapper resources are loaded from `trade-app/src/main/resources/mybatis/`.
 - Local PostgreSQL state lives in the `tradeagent-postgres-data` Docker named volume.
 - Docker infrastructure runs PostgreSQL, RabbitMQ, and Redis from `docker/docker-compose-fundament.yml`.
 - PostgreSQL initialization scripts live in `docs/PostgreSQL/` and are mounted into `/docker-entrypoint-initdb.d` for first-run database initialization.

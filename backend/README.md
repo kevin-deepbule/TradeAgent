@@ -19,10 +19,10 @@ The backend is the public API boundary for the browser. It owns:
 ## Structure
 
 - `pom.xml`: parent Maven reactor build.
-- `trade-app/`: Spring Boot entrypoint and `application.properties`.
+- `trade-app/`: Spring Boot entrypoint, `application.properties`, and MyBatis XML mapper resources.
 - `trade-api/`: public REST API contracts and DTO payload classes.
 - `trade-domain/`: stock workflow services and ports for data source, cache, and persistence.
-- `trade-infrastructure/`: PostgreSQL repositories, in-memory cache, HTTP client, datasource, and REST client beans.
+- `trade-infrastructure/`: PostgreSQL repositories and MyBatis mapper interfaces, in-memory cache, HTTP client, datasource, and REST client beans.
 - `trade-trigger/`: concrete Spring Web controllers, exception handling, CORS, WebSocket endpoint, startup initialization, and scheduled refresh triggers.
 - `trade-types/`: typed config and backend utility types.
 - `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
@@ -152,3 +152,4 @@ Runtime settings are configured in `trade-app/src/main/resources/application.pro
 - `POSTGRES_JDBC_URL`, default `jdbc:postgresql://localhost:5432/tradeagent`
 - `POSTGRES_USER`, default `tradeagent`
 - `POSTGRES_PASSWORD`, default `tradeagent`
+- `mybatis.mapper-locations`, default `classpath*:mybatis/*.xml`
