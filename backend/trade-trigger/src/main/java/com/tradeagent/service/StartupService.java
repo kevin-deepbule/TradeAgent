@@ -25,7 +25,7 @@ public class StartupService implements ApplicationRunner {
         this.stockCache = stockCache;
     }
 
-    /** Initialize SQLite tables and load persisted symbols into the live cache. */
+    /** Initialize database tables and load persisted symbols into the live cache. */
     @Override
     public void run(ApplicationArguments args) {
         watchlistRepository.init();

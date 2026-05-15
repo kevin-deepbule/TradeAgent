@@ -7,11 +7,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record AppProperties(
         int refreshSeconds,
         String defaultSymbol,
-        String watchlistDbPath,
         String akshareBaseUrl) {
     /** Provide a valid refresh interval when configuration is missing or invalid. */
     public int refreshSecondsOrDefault() {
         return refreshSeconds > 0 ? refreshSeconds : 60;
     }
 }
-

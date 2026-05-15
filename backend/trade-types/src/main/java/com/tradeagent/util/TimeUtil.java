@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
-/** Time formatting helpers for API payloads and SQLite rows. */
+/** Time formatting helpers for API payloads. */
 public final class TimeUtil {
     /** Prevent construction of this utility class. */
     private TimeUtil() {
@@ -15,4 +15,3 @@ public final class TimeUtil {
         return LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
     }
 }
-

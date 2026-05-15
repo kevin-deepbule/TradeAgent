@@ -51,7 +51,7 @@ source .venv/bin/activate
 mkdir -p .logs && setsid python3 -m akshare_adapter.server > .logs/akshare-adapter.log 2>&1 < /dev/null &
 ```
 
-Start optional backend infrastructure:
+Start backend infrastructure:
 
 ```bash
 docker compose -f backend/docker/docker-compose-fundament.yml up -d
@@ -96,7 +96,7 @@ curl --noproxy '*' http://localhost:8001/api/stocks/000001/kline
 
 ## Runtime State
 
-- SQLite database: `backend/data/watchlist.db`
+- PostgreSQL data: Docker named volume `tradeagent-postgres-data`
 - Optional Docker service state: Docker named volumes declared in `backend/docker/`
 - Local logs: `.logs/`
 - Frontend build output: `frontend/dist/`

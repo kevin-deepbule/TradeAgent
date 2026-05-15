@@ -2,7 +2,7 @@
 
 Spring Boot backend for TradeAgent. It is split into DDD-oriented Maven modules,
 exposes the public REST and WebSocket API used by the Vue frontend, persists
-local user settings in SQLite, and calls the internal AkShare adapter for stock
+local user settings in PostgreSQL, and calls the internal AkShare adapter for stock
 data.
 
 ## Role
@@ -11,7 +11,7 @@ The backend is the public API boundary for the browser. It owns:
 
 - Health, settings, watchlist, and K-line REST APIs.
 - Stock WebSocket updates.
-- SQLite persistence.
+- PostgreSQL persistence.
 - Local caching and startup initialization.
 - Trade advice generation.
 - Communication with `akshare_adapter/`.
@@ -22,12 +22,12 @@ The backend is the public API boundary for the browser. It owns:
 - `trade-app/`: Spring Boot entrypoint and `application.properties`.
 - `trade-api/`: REST controllers, exception handling, CORS, and WebSocket endpoints.
 - `trade-domain/`: stock workflow services and ports for data source, cache, and persistence.
-- `trade-infrastructure/`: SQLite repositories, in-memory cache, HTTP client, datasource, and REST client beans.
+- `trade-infrastructure/`: PostgreSQL repositories, in-memory cache, HTTP client, datasource, and REST client beans.
 - `trade-trigger/`: startup initialization and scheduled refresh triggers.
 - `trade-types/`: shared DTOs, typed config, and backend utility types.
-- `docs/`: backend design and module documentation.
+- `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
 - `docker/`: optional Docker Compose definitions for local backend infrastructure.
-- `data/watchlist.db`: local SQLite runtime database.
+- `docs/PostgreSQL/`: first-run PostgreSQL schema initialization scripts.
 
 ## Run
 
@@ -45,7 +45,7 @@ Defaults:
 - Port: `8001`
 - Health: `http://localhost:8001/api/health`
 - AkShare adapter base: `http://localhost:8002`
-- SQLite: `backend/data/watchlist.db`
+- PostgreSQL: `jdbc:postgresql://localhost:5432/tradeagent`
 
 ## Package
 
@@ -56,10 +56,11 @@ java -jar backend/trade-app/target/trade-app-0.1.0.jar
 
 ## Docker Infrastructure
 
-`docker/docker-compose-fundament.yml` starts optional local dependencies for
-backend development:
+`docker/docker-compose-fundament.yml` starts local dependencies for backend
+development:
 
 - PostgreSQL 16 on `localhost:5432`
+- PostgreSQL first-run schema initialization from `docs/PostgreSQL/`
 - RabbitMQ 3.13 with AMQP on `localhost:5672`
 - RabbitMQ management UI on `http://localhost:15672`
 - Redis 7 on `localhost:6379`
@@ -94,6 +95,9 @@ Environment variables can override defaults:
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT`
 - `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS`, `RABBITMQ_PORT`, `RABBITMQ_MANAGEMENT_PORT`
 - `REDIS_PORT`
+
+PostgreSQL mounts `docs/PostgreSQL/` into `/docker-entrypoint-initdb.d`, so the
+scripts run when the database volume is first initialized.
 
 ## Test
 
@@ -144,5 +148,7 @@ Runtime settings are configured in `trade-app/src/main/resources/application.pro
 - `BACKEND_PORT`, default `8001`
 - `STOCK_REFRESH_SECONDS`, default `60`
 - `DEFAULT_STOCK_SYMBOL`, default `000001`
-- `WATCHLIST_DB_PATH`, default empty, resolved by the app
 - `AKSHARE_ADAPTER_BASE_URL`, default `http://localhost:8002`
+- `POSTGRES_JDBC_URL`, default `jdbc:postgresql://localhost:5432/tradeagent`
+- `POSTGRES_USER`, default `tradeagent`
+- `POSTGRES_PASSWORD`, default `tradeagent`

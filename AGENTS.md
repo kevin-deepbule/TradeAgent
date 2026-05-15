@@ -21,11 +21,11 @@ This is a Java + Vue A-share K-line dashboard with a small Python AkShare
 adapter.
 
 - Frontend: Vue 3 + Vite + ECharts in `frontend/`
-- Backend: DDD-oriented Spring Boot multi-module app + SQLite in `backend/`
+- Backend: DDD-oriented Spring Boot multi-module app + PostgreSQL in `backend/`
 - Backend infrastructure: Docker Compose in `backend/docker/`
 - Adapter: FastAPI + AkShare + pandas in `akshare_adapter/`
 - Data source: AkShare
-- Database: `backend/data/watchlist.db`
+- Database: PostgreSQL from `backend/docker/docker-compose-fundament.yml`
 
 ## Directory Boundaries
 
@@ -56,7 +56,7 @@ mvn -f backend/pom.xml -pl trade-app -am -DskipTests package
 setsid java -jar backend/trade-app/target/trade-app-0.1.0.jar --debug=false > .logs/backend.log 2>&1 < /dev/null &
 ```
 
-Optional backend infrastructure:
+Backend infrastructure:
 
 ```bash
 docker compose -f backend/docker/docker-compose-fundament.yml up -d
@@ -158,7 +158,7 @@ Execution assumptions:
 
 - Keep backend route paths stable because the frontend calls them directly.
 - Keep backend module boundaries intact: `trade-api` exposes external calls, `trade-app` assembles the runnable app, `trade-domain` owns domain services and ports, `trade-infrastructure` implements storage/cache/external clients, `trade-trigger` owns startup and scheduled tasks, and `trade-types` owns shared DTO/config/util types.
-- Keep `backend/data/watchlist.db` out of git; it is local runtime state.
+- Keep database runtime state in Docker named volumes instead of git.
 - Keep Docker Compose files in `backend/docker/` focused on local backend infrastructure; do not put application runtime state in git.
 - Keep AkShare access isolated in `akshare_adapter/`; Java should call the adapter instead of reimplementing AkShare scraping.
 - When a change affects behavior, commands, configuration, APIs, directory responsibilities, or runtime assumptions, update the nearest matching `README.md` and `AGENTS.md` in the same change.

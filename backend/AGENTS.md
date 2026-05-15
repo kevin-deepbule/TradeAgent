@@ -14,10 +14,10 @@ This directory contains the DDD-oriented Spring Boot backend.
 - `trade-api/`: REST API controllers, exception translation, CORS, and stock WebSocket endpoint.
 - `trade-app/`: application entrypoint and runtime properties.
 - `trade-domain/`: domain services and ports; do not depend on infrastructure implementations from here.
-- `trade-infrastructure/`: SQLite persistence, in-memory cache, AkShare adapter HTTP client, datasource, and REST client beans.
+- `trade-infrastructure/`: PostgreSQL persistence, in-memory cache, AkShare adapter HTTP client, datasource, and REST client beans.
 - `trade-trigger/`: startup initialization and scheduled tasks.
 - `trade-types/`: public payload DTOs, typed config, and small shared utilities.
-- `docs/`: backend design and module documentation.
+- `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
 - `docker/`: optional Docker Compose definitions for backend development infrastructure.
 
 ## API Contract
@@ -64,7 +64,7 @@ Compile and test:
 mvn -f backend/pom.xml test
 ```
 
-Optional Docker infrastructure:
+Docker infrastructure:
 
 ```bash
 docker compose -f backend/docker/docker-compose-fundament.yml up -d
@@ -84,9 +84,10 @@ curl --noproxy '*' http://localhost:8001/api/stocks/000001/kline
 
 - Default backend port is `8001`.
 - Default adapter base URL is `http://localhost:8002`.
-- Local SQLite state lives at `backend/data/watchlist.db`.
-- Optional Docker infrastructure runs PostgreSQL, RabbitMQ, and Redis from `docker/docker-compose-fundament.yml`.
+- Local PostgreSQL state lives in the `tradeagent-postgres-data` Docker named volume.
+- Docker infrastructure runs PostgreSQL, RabbitMQ, and Redis from `docker/docker-compose-fundament.yml`.
+- PostgreSQL initialization scripts live in `docs/PostgreSQL/` and are mounted into `/docker-entrypoint-initdb.d` for first-run database initialization.
 - Docker service state lives in named volumes; use `docker compose -f backend/docker/docker-compose-fundament.yml down -v` only when intentionally resetting it.
 - Update `README.md` and this `AGENTS.md` whenever backend behavior, commands, configuration, APIs, structure, infrastructure, or runtime assumptions change.
-- Do not commit `data/watchlist.db`, Docker service data, or `target/`.
+- Do not commit Docker service data, database dumps, or `target/`.
 - Every source file and public method should have concise comments where the project comment rules require them.

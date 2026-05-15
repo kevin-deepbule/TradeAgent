@@ -11,11 +11,10 @@ import com.tradeagent.config.AppProperties;
 import com.tradeagent.domain.repository.SettingsRepository;
 import com.tradeagent.dto.StockIdentity;
 import com.tradeagent.util.StockText;
-import com.tradeagent.util.TimeUtil;
 
-/** SQLite repository for durable dashboard settings. */
+/** PostgreSQL repository for durable dashboard settings. */
 @Repository
-public class SqliteSettingsRepository implements SettingsRepository {
+public class PostgresSettingsRepository implements SettingsRepository {
     private static final String DEFAULT_STOCK_SYMBOL_KEY = "default_stock_symbol";
     private static final String DEFAULT_STOCK_NAME_KEY = "default_stock_name";
 
@@ -23,7 +22,7 @@ public class SqliteSettingsRepository implements SettingsRepository {
     private final AppProperties properties;
 
     /** Create the repository with JDBC access and app defaults. */
-    public SqliteSettingsRepository(JdbcTemplate jdbcTemplate, AppProperties properties) {
+    public PostgresSettingsRepository(JdbcTemplate jdbcTemplate, AppProperties properties) {
         this.jdbcTemplate = jdbcTemplate;
         this.properties = properties;
     }
@@ -31,22 +30,24 @@ public class SqliteSettingsRepository implements SettingsRepository {
     /** Create settings storage and seed the configured default stock. */
     @Override
     public void init() {
-        String now = TimeUtil.nowIsoSeconds();
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS app_settings (
                     key TEXT PRIMARY KEY,
                     value TEXT NOT NULL DEFAULT '',
-                    updated_at TEXT NOT NULL
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
                 )
                 """);
+        ensureTimestampDefaults();
         jdbcTemplate.update("""
-                INSERT OR IGNORE INTO app_settings (key, value, updated_at)
-                VALUES (?, ?, ?)
-                """, DEFAULT_STOCK_SYMBOL_KEY, StockText.normalizeSymbol(properties.defaultSymbol()), now);
+                INSERT INTO app_settings (key, value)
+                VALUES (?, ?)
+                ON CONFLICT(key) DO NOTHING
+                """, DEFAULT_STOCK_SYMBOL_KEY, StockText.normalizeSymbol(properties.defaultSymbol()));
         jdbcTemplate.update("""
-                INSERT OR IGNORE INTO app_settings (key, value, updated_at)
-                VALUES (?, ?, ?)
-                """, DEFAULT_STOCK_NAME_KEY, "", now);
+                INSERT INTO app_settings (key, value)
+                VALUES (?, ?)
+                ON CONFLICT(key) DO NOTHING
+                """, DEFAULT_STOCK_NAME_KEY, "");
     }
 
     /** Read the persisted default stock from settings storage. */
@@ -69,21 +70,29 @@ public class SqliteSettingsRepository implements SettingsRepository {
     public StockIdentity setDefaultStock(String symbol, String name) {
         String normalized = StockText.normalizeSymbol(symbol);
         String cleanName = name == null ? "" : name;
-        String now = TimeUtil.nowIsoSeconds();
         jdbcTemplate.update("""
-                INSERT INTO app_settings (key, value, updated_at)
-                VALUES (?, ?, ?)
+                INSERT INTO app_settings (key, value)
+                VALUES (?, ?)
                 ON CONFLICT(key) DO UPDATE SET
                     value = excluded.value,
-                    updated_at = excluded.updated_at
-                """, DEFAULT_STOCK_SYMBOL_KEY, normalized, now);
+                    updated_at = now()
+                """, DEFAULT_STOCK_SYMBOL_KEY, normalized);
         jdbcTemplate.update("""
-                INSERT INTO app_settings (key, value, updated_at)
-                VALUES (?, ?, ?)
+                INSERT INTO app_settings (key, value)
+                VALUES (?, ?)
                 ON CONFLICT(key) DO UPDATE SET
                     value = excluded.value,
-                    updated_at = excluded.updated_at
-                """, DEFAULT_STOCK_NAME_KEY, cleanName, now);
+                    updated_at = now()
+                """, DEFAULT_STOCK_NAME_KEY, cleanName);
         return new StockIdentity(normalized, cleanName, "");
+    }
+
+    /** Ensure existing PostgreSQL tables use database-managed update time. */
+    private void ensureTimestampDefaults() {
+        jdbcTemplate.execute("""
+                ALTER TABLE app_settings
+                    ALTER COLUMN updated_at TYPE TIMESTAMPTZ USING updated_at::timestamptz,
+                    ALTER COLUMN updated_at SET DEFAULT now()
+                """);
     }
 }

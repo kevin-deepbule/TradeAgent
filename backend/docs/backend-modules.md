@@ -7,9 +7,10 @@ The backend uses a Maven reactor with DDD-oriented module boundaries.
 - `trade-api`: external REST and WebSocket adapters used by the frontend.
 - `trade-app`: runnable Spring Boot application and runtime properties.
 - `trade-domain`: stock workflow services plus ports for market data, cache, settings, and watchlist persistence.
-- `trade-infrastructure`: concrete adapters for SQLite, in-memory cache, AkShare HTTP access, datasource, and REST client beans.
+- `trade-infrastructure`: concrete adapters for PostgreSQL, in-memory cache, AkShare HTTP access, datasource, and REST client beans.
 - `trade-trigger`: startup initialization and scheduled refresh triggers.
 - `trade-types`: shared DTOs, typed config, and small utility types.
+- `docs/PostgreSQL`: idempotent SQL scripts for local PostgreSQL schema initialization.
 
 ## Dependency Direction
 
