@@ -132,6 +132,10 @@ The K-line response includes:
 - `risks`
 - `generatedAt`
 
+Stock WebSocket connections send cached K-line payloads immediately when a
+cache entry exists, and only wait for an adapter refresh when the symbol has not
+been cached yet.
+
 ## Environment
 
 Runtime settings are configured in `trade-app/src/main/resources/application.properties`:

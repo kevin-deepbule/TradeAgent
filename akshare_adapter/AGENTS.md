@@ -22,6 +22,10 @@ Starting points:
 
 - A-share historical quotes: `ak.stock_zh_a_hist`
 - A-share realtime spot quotes: `ak.stock_zh_a_spot_em`
+- If historical daily data does not include the current trading day, append a
+  temporary intraday row from realtime spot quotes. Prefer
+  `ak.stock_zh_a_spot_em`; fall back to `ak.stock_zh_a_spot` when Eastmoney is
+  unavailable, and keep volume units aligned with historical rows.
 
 ## Structure Rules
 
@@ -55,6 +59,8 @@ curl --noproxy '*' http://localhost:8002/internal/health
 ## Notes
 
 - Default adapter port is `8002`.
+- `REALTIME_SPOT_CACHE_SECONDS` controls the short all-market realtime spot
+  cache used while appending temporary intraday rows.
 - Keep this service internal to the backend; the frontend should not call it directly.
 - Update `README.md` and this `AGENTS.md` whenever adapter behavior, commands, configuration, routes, AkShare usage, structure, or runtime assumptions change.
 - Do not commit `__pycache__/` or virtual environment files.

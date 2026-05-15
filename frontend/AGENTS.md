@@ -32,9 +32,9 @@ This directory contains the Vue 3 + Vite + ECharts dashboard.
 - `MA20趋势跟随：有效突破` buys only when the close is above MA20, no higher than `MA20 * 1.05`, and MA60 is at least 99.9% of the previous MA60; if MA60 is below `previous MA60 * 1.002`, same-day volume must also be greater than `volume MA20 * 1.5`.
 - All strategies must execute through `calculateBacktest` in `src/services/backtest.js`.
 - Individual strategy helpers should return only `buy`, `sell`, or `null`.
-- Actual executions happen at the next trading day's open price.
-- Limit-up opens cannot be bought; blocked buy orders are skipped.
-- Limit-down opens cannot be sold; blocked sell orders remain pending until the next tradable open.
+- Actual executions happen at the signal day's close price.
+- Limit-up opens on the signal day cannot be bought; blocked buy orders are skipped.
+- Limit-down opens on the signal day cannot be sold; blocked sell orders remain pending until the next tradable open.
 - Chart buy/sell markers represent actual execution dates/prices.
 - Yellow chart `markArea` bands represent actual holding periods.
 

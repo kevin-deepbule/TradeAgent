@@ -63,3 +63,13 @@ These routes are for the Java backend, not for direct browser use.
 - `AKSHARE_ADAPTER_PORT`, default `8002`
 - `KLINE_DISPLAY_YEARS`, default `5`
 - `KLINE_MA_WARMUP_DAYS`, default `120`
+- `REALTIME_SPOT_CACHE_SECONDS`, default `20`
+
+## K-line Data Behavior
+
+Daily K-line history uses AkShare historical APIs. During the A-share trading
+session, if historical data does not yet include today's row, the adapter tries
+to append a temporary intraday row from realtime spot quotes. It tries
+`ak.stock_zh_a_spot_em()` first and falls back to `ak.stock_zh_a_spot()` when
+Eastmoney realtime quotes are unavailable. Sina realtime volume is converted
+from shares to hands so it matches the historical K-line volume unit.

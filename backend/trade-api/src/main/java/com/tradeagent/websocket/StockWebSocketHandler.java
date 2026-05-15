@@ -70,10 +70,14 @@ public class StockWebSocketHandler extends TextWebSocketHandler {
             String query = queryFromPath(session);
             StockIdentity resolved = stockService.resolveStock(query);
             stockService.cache().addSymbol(resolved.symbol, resolved.name);
-            stockService.refreshSymbol(resolved.symbol);
+            KlinePayload payload = stockService.cache().get(resolved.symbol);
+            if (payload == null) {
+                payload = stockService.refreshSymbol(resolved.symbol);
+            }
+            sendJson(session, payload.withName(resolved.name));
 
             while (session.isOpen() && !Thread.currentThread().isInterrupted()) {
-                KlinePayload payload = stockService.cache().get(resolved.symbol);
+                payload = stockService.cache().get(resolved.symbol);
                 if (payload == null) {
                     payload = stockService.refreshSymbol(resolved.symbol);
                 } else {
@@ -143,4 +147,3 @@ public class StockWebSocketHandler extends TextWebSocketHandler {
         return payload;
     }
 }
-

@@ -148,9 +148,9 @@ Execution assumptions:
 
 - Signals are generated from completed K-line rows after the signal day's close, even when a condition uses intraday high/low.
 - All strategies must execute through the shared `calculateBacktest` engine in `frontend/src/services/backtest.js`; individual strategy helpers should only return `buy`, `sell`, or `null`.
-- Actual buy/sell execution always happens at the next trading day's open price.
-- Limit-up opens cannot be bought; blocked buy orders are skipped.
-- Limit-down opens cannot be sold; blocked sell orders remain pending until the next tradable open.
+- Actual buy/sell execution happens at the signal day's close price.
+- Limit-up opens on the signal day cannot be bought; blocked buy orders are skipped.
+- Limit-down opens on the signal day cannot be sold; blocked sell orders remain pending until the next tradable open.
 - Chart buy/sell markers represent actual execution dates/prices.
 - Yellow chart `markArea` bands represent actual holding periods.
 

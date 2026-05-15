@@ -45,6 +45,8 @@ The frontend depends on the K-line payload fields:
 - `warnings`
 
 Avoid renaming response fields unless the frontend is updated in the same change.
+WebSocket stock streams should send cached K-line payloads immediately when
+available, and only block on adapter refresh when no cached payload exists.
 
 ## Commands
 

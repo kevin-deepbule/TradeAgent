@@ -40,7 +40,7 @@ export function performanceClass(value) {
 }
 
 function priceLimitPercent(symbol = "", name = "") {
-  // Estimate the A-share price limit band from symbol/name for open execution.
+  // Estimate the A-share price limit band from symbol/name for open limit checks.
   const upperName = name.toUpperCase();
   if (upperName.includes("ST")) return 5;
   if (/^(300|301|688|689)/.test(symbol)) return 20;
@@ -57,13 +57,13 @@ function openChangePercent(row, previous) {
 }
 
 function isLimitUpOpen(row, previous, limitPercent) {
-  // Treat a near-limit-up open as unavailable for next-open buy execution.
+  // Treat a near-limit-up open as unavailable for same-day buy execution.
   const changePercent = openChangePercent(row, previous);
   return changePercent !== null && changePercent >= limitPercent - 0.2;
 }
 
 function isLimitDownOpen(row, previous, limitPercent) {
-  // Treat a near-limit-down open as unavailable for next-open sell execution.
+  // Treat a near-limit-down open as unavailable for same-day or pending sell execution.
   const changePercent = openChangePercent(row, previous);
   return changePercent !== null && changePercent <= -limitPercent + 0.2;
 }
@@ -251,7 +251,7 @@ function longProtectAction(data, index, holding, trades) {
 }
 
 function strategyAction(strategyId, data, index, holding, entry, trades = [], limitPercent = 10) {
-  // Return only a signal; calculateBacktest applies next-open and limit rules.
+  // Return only a signal; calculateBacktest applies close-price execution and limit rules.
   const row = data[index];
   const previous = data[index - 1];
   if (!row) return null;
@@ -314,10 +314,10 @@ function shouldStartFullyInvested(strategyId) {
 }
 
 function enterInitialLong(row, index, state) {
-  // Open the initial full position for long-hold strategies at the first open.
-  const openPrice = numericValue(row.open);
+  // Open the initial full position for long-hold strategies at the first close.
   const closePrice = numericValue(row.close);
-  const entryPrice = openPrice ?? closePrice;
+  const openPrice = numericValue(row.open);
+  const entryPrice = closePrice ?? openPrice;
   if (entryPrice === null || entryPrice <= 0) return false;
 
   state.shares = state.capital / entryPrice;
@@ -340,7 +340,7 @@ function enterInitialLong(row, index, state) {
 }
 
 export function calculateBacktest(data, strategyId, stock = {}) {
-  // Centralize all strategy execution at the next tradable open with limit checks.
+  // Centralize same-day close execution, with open-limit checks for blocked orders.
   const strategy = strategyOptions.find((item) => item.id === strategyId);
   const limitPercent = priceLimitPercent(stock.symbol, stock.name);
   const signals = [];
@@ -373,72 +373,97 @@ export function calculateBacktest(data, strategyId, stock = {}) {
     const valuationPrice = closePrice ?? openPrice;
 
     if (pendingOrder && previous && openPrice !== null && openPrice > 0) {
-      if (pendingOrder.type === "buy") {
-        if (isLimitUpOpen(row, previous, limitPercent)) {
-          blockedBuyCount += 1;
-          pendingOrder = null;
-        } else if (!holding) {
-          shares = capital / openPrice;
-          holding = true;
-          entry = {
-            index,
-            date: row.date,
-            price: openPrice,
-            signalDate: pendingOrder.signalDate,
-          };
-          activeRange = { startIndex: index, endIndex: index };
-          signals.push({
-            type: "buy",
-            index,
-            date: row.date,
-            price: openPrice,
-            signalDate: pendingOrder.signalDate,
-          });
-          pendingOrder = null;
+      if (isLimitDownOpen(row, previous, limitPercent)) {
+        blockedSellCount += 1;
+      } else if (holding && entry) {
+        capital = shares * openPrice;
+        shares = 0;
+        holding = false;
+        signals.push({
+          type: "sell",
+          index,
+          date: row.date,
+          price: openPrice,
+          signalDate: pendingOrder.signalDate,
+        });
+        trades.push({
+          entryDate: entry.date,
+          entryIndex: entry.index,
+          exitDate: row.date,
+          exitIndex: index,
+          entryPrice: entry.price,
+          exitPrice: openPrice,
+          returnPct: ((openPrice - entry.price) / entry.price) * 100,
+          isOpen: false,
+        });
+        if (activeRange) {
+          activeRange.endIndex = index;
+          holdingRanges.push(activeRange);
         }
-      } else if (pendingOrder.type === "sell") {
-        if (isLimitDownOpen(row, previous, limitPercent)) {
-          blockedSellCount += 1;
-        } else if (holding && entry) {
-          capital = shares * openPrice;
-          shares = 0;
-          holding = false;
-          signals.push({
-            type: "sell",
-            index,
-            date: row.date,
-            price: openPrice,
-            signalDate: pendingOrder.signalDate,
-          });
-          trades.push({
-            entryDate: entry.date,
-            entryIndex: entry.index,
-            exitDate: row.date,
-            exitIndex: index,
-            entryPrice: entry.price,
-            exitPrice: openPrice,
-            returnPct: ((openPrice - entry.price) / entry.price) * 100,
-            isOpen: false,
-          });
-          if (activeRange) {
-            activeRange.endIndex = index;
-            holdingRanges.push(activeRange);
-          }
-          activeRange = null;
-          entry = null;
-          pendingOrder = null;
-        }
+        activeRange = null;
+        entry = null;
+        pendingOrder = null;
       }
     }
 
     if (holding && activeRange) activeRange.endIndex = index;
 
-    const action =
-      !pendingOrder && index < data.length - 1
-        ? strategyAction(strategyId, data, index, holding, entry, trades, limitPercent)
-        : null;
-    if (action) {
-      pendingOrder = { type: action, signalIndex: index, signalDate: row.date };
+    const action = !pendingOrder
+      ? strategyAction(strategyId, data, index, holding, entry, trades, limitPercent)
+      : null;
+    if (action === "buy" && !holding && closePrice !== null && closePrice > 0) {
+      if (isLimitUpOpen(row, previous, limitPercent)) {
+        blockedBuyCount += 1;
+      } else {
+        shares = capital / closePrice;
+        holding = true;
+        entry = {
+          index,
+          date: row.date,
+          price: closePrice,
+          signalDate: row.date,
+        };
+        activeRange = { startIndex: index, endIndex: index };
+        signals.push({
+          type: "buy",
+          index,
+          date: row.date,
+          price: closePrice,
+          signalDate: row.date,
+        });
+      }
+    } else if (action === "sell" && holding && entry && closePrice !== null && closePrice > 0) {
+      if (isLimitDownOpen(row, previous, limitPercent)) {
+        blockedSellCount += 1;
+        pendingOrder = { type: "sell", signalIndex: index, signalDate: row.date };
+      } else {
+        capital = shares * closePrice;
+        shares = 0;
+        holding = false;
+        signals.push({
+          type: "sell",
+          index,
+          date: row.date,
+          price: closePrice,
+          signalDate: row.date,
+        });
+        trades.push({
+          entryDate: entry.date,
+          entryIndex: entry.index,
+          exitDate: row.date,
+          exitIndex: index,
+          entryPrice: entry.price,
+          exitPrice: closePrice,
+          returnPct: ((closePrice - entry.price) / entry.price) * 100,
+          isOpen: false,
+        });
+        if (activeRange) {
+          activeRange.endIndex = index;
+          holdingRanges.push(activeRange);
+        }
+        activeRange = null;
+        entry = null;
+      }
     }
 
     const previousEquity = equityCurve.at(-1)?.equity ?? capital;
@@ -507,7 +532,7 @@ export function backtestStatusText(result) {
     parts.push("未触发成交");
   }
   if (result.pendingOrder) {
-    parts.push(`${signalLabel(result.pendingOrder.type)}信号待下一交易日开盘执行`);
+    parts.push(`${signalLabel(result.pendingOrder.type)}信号待可交易开盘执行`);
   }
   if (result.blockedBuyCount) parts.push(`涨停未买${result.blockedBuyCount}次`);
   if (result.blockedSellCount) parts.push(`跌停未卖${result.blockedSellCount}次`);
