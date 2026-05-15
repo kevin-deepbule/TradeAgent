@@ -157,7 +157,7 @@ Execution assumptions:
 ## Development Notes
 
 - Keep backend route paths stable because the frontend calls them directly.
-- Keep backend module boundaries intact: `trade-api` exposes external calls, `trade-app` assembles the runnable app, `trade-domain` owns domain services and ports, `trade-infrastructure` implements storage/cache/external clients, `trade-trigger` owns startup and scheduled tasks, and `trade-types` owns shared DTO/config/util types.
+- Keep backend module boundaries intact: `trade-api` owns public API contracts and DTO payloads, `trade-app` assembles the runnable app, `trade-domain` owns domain services and ports, `trade-infrastructure` implements storage/cache/external clients, `trade-trigger` owns concrete Spring Web implementations plus startup and scheduled tasks, and `trade-types` owns shared config/util types.
 - Keep database runtime state in Docker named volumes instead of git.
 - Keep Docker Compose files in `backend/docker/` focused on local backend infrastructure; do not put application runtime state in git.
 - Keep AkShare access isolated in `akshare_adapter/`; Java should call the adapter instead of reimplementing AkShare scraping.

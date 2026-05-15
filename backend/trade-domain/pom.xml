@@ -16,6 +16,11 @@
     <dependencies>
         <dependency>
             <groupId>com.tradeagent</groupId>
+            <artifactId>trade-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.tradeagent</groupId>
             <artifactId>trade-types</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -11,12 +11,12 @@ This directory contains the DDD-oriented Spring Boot backend.
 
 ## Structure Rules
 
-- `trade-api/`: REST API controllers, exception translation, CORS, and stock WebSocket endpoint.
+- `trade-api/`: public REST API contracts and DTO payload classes.
 - `trade-app/`: application entrypoint and runtime properties.
 - `trade-domain/`: domain services and ports; do not depend on infrastructure implementations from here.
 - `trade-infrastructure/`: PostgreSQL persistence, in-memory cache, AkShare adapter HTTP client, datasource, and REST client beans.
-- `trade-trigger/`: startup initialization and scheduled tasks.
-- `trade-types/`: public payload DTOs, typed config, and small shared utilities.
+- `trade-trigger/`: concrete Spring Web controllers, exception translation, CORS, WebSocket endpoint, startup initialization, and scheduled tasks.
+- `trade-types/`: typed config and small shared utilities.
 - `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
 - `docker/`: optional Docker Compose definitions for backend development infrastructure.
 

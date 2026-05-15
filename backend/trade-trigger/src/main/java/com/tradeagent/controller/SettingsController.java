@@ -2,18 +2,17 @@ package com.tradeagent.controller;
 
 import java.util.Map;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tradeagent.api.SettingsApi;
 import com.tradeagent.domain.repository.SettingsRepository;
 import com.tradeagent.dto.StockIdentity;
 import com.tradeagent.service.StockService;
 
 /** Dashboard settings HTTP routes. */
 @RestController
-public class SettingsController {
+public class SettingsController implements SettingsApi {
     private final SettingsRepository settingsRepository;
     private final StockService stockService;
 
@@ -24,13 +23,13 @@ public class SettingsController {
     }
 
     /** Return the stock configured as the dashboard default. */
-    @GetMapping("/api/default-stock")
+    @Override
     public StockIdentity getDefaultStock() {
         return settingsRepository.getDefaultStock();
     }
 
     /** Resolve and persist the requested stock as the dashboard default. */
-    @PutMapping("/api/default-stock")
+    @Override
     public StockIdentity setDefaultStock(@RequestBody Map<String, String> item) {
         String query = firstNonBlank(item.get("query"), item.get("symbol"));
         StockIdentity resolved = stockService.resolveStock(query);

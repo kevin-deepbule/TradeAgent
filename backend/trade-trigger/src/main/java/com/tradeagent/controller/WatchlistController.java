@@ -3,13 +3,11 @@ package com.tradeagent.controller;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tradeagent.api.WatchlistApi;
 import com.tradeagent.domain.repository.WatchlistRepository;
 import com.tradeagent.dto.StockIdentity;
 import com.tradeagent.dto.WatchlistItem;
@@ -18,7 +16,7 @@ import com.tradeagent.util.StockText;
 
 /** Watchlist HTTP routes for listing, adding, and removing stocks. */
 @RestController
-public class WatchlistController {
+public class WatchlistController implements WatchlistApi {
     private final WatchlistRepository watchlistRepository;
     private final StockService stockService;
 
@@ -29,13 +27,13 @@ public class WatchlistController {
     }
 
     /** Return all persisted watchlist entries in display order. */
-    @GetMapping("/api/watchlist")
+    @Override
     public List<WatchlistItem> listWatchlist() {
         return watchlistRepository.list();
     }
 
     /** Resolve a query and persist the stock into the watchlist. */
-    @PostMapping("/api/watchlist")
+    @Override
     public WatchlistItem addWatchlist(@RequestBody Map<String, String> item) {
         String query = firstNonBlank(item.get("query"), item.get("symbol"));
         StockIdentity resolved = stockService.resolveStock(query);
@@ -45,7 +43,7 @@ public class WatchlistController {
     }
 
     /** Remove a stock from both persisted watchlist and live cache. */
-    @DeleteMapping("/api/watchlist/{symbol}")
+    @Override
     public Map<String, Boolean> deleteWatchlist(@PathVariable String symbol) {
         String normalized = StockText.normalizeSymbol(symbol);
         watchlistRepository.delete(normalized);

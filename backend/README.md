@@ -20,11 +20,11 @@ The backend is the public API boundary for the browser. It owns:
 
 - `pom.xml`: parent Maven reactor build.
 - `trade-app/`: Spring Boot entrypoint and `application.properties`.
-- `trade-api/`: REST controllers, exception handling, CORS, and WebSocket endpoints.
+- `trade-api/`: public REST API contracts and DTO payload classes.
 - `trade-domain/`: stock workflow services and ports for data source, cache, and persistence.
 - `trade-infrastructure/`: PostgreSQL repositories, in-memory cache, HTTP client, datasource, and REST client beans.
-- `trade-trigger/`: startup initialization and scheduled refresh triggers.
-- `trade-types/`: shared DTOs, typed config, and backend utility types.
+- `trade-trigger/`: concrete Spring Web controllers, exception handling, CORS, WebSocket endpoint, startup initialization, and scheduled refresh triggers.
+- `trade-types/`: typed config and backend utility types.
 - `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
 - `docker/`: optional Docker Compose definitions for local backend infrastructure.
 - `docs/PostgreSQL/`: first-run PostgreSQL schema initialization scripts.
