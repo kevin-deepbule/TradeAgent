@@ -21,13 +21,20 @@ The backend is the public API boundary for the browser. It owns:
 - `pom.xml`: parent Maven reactor build.
 - `trade-app/`: Spring Boot entrypoint, `application.properties`, and MyBatis XML mapper resources.
 - `trade-api/`: public REST API contracts and DTO payload classes.
-- `trade-domain/`: stock workflow services and ports for data source, cache, and persistence.
+- `trade-domain/`: stock workflow services and ports for data source, cache, and persistence. Trading logic is being organized into strategy, backtest, and intelligent-agent domain packages.
 - `trade-infrastructure/`: PostgreSQL repositories and MyBatis mapper interfaces, in-memory cache, HTTP client, datasource, and REST client beans.
 - `trade-trigger/`: concrete Spring Web controllers, exception handling, CORS, WebSocket endpoint, startup initialization, and scheduled refresh triggers.
 - `trade-types/`: typed config and backend utility types.
 - `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
 - `docker/`: optional Docker Compose definitions for local backend infrastructure.
 - `docs/PostgreSQL/`: first-run PostgreSQL schema initialization scripts.
+
+### Trade Domain Packages
+
+- `com.tradeagent.domain.strategy`: strategy identifiers, signal-only strategy contracts, and strategy evaluation models.
+- `com.tradeagent.domain.backtest`: backtest scenarios, execution results, orders, trades, holding ranges, and engine contracts.
+- `com.tradeagent.domain.agent`: intelligent-agent context, explainable decisions, and agent decision contracts.
+- `com.tradeagent.service`: existing application-facing domain services that will be migrated gradually.
 
 ## Run
 

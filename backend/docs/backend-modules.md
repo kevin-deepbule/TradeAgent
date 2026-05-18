@@ -6,7 +6,7 @@ The backend uses a Maven reactor with DDD-oriented module boundaries.
 
 - `trade-api`: public REST API contracts and DTO payload classes.
 - `trade-app`: runnable Spring Boot application, runtime properties, and MyBatis XML mapper resources.
-- `trade-domain`: stock workflow services plus ports for market data, cache, settings, and watchlist persistence.
+- `trade-domain`: stock workflow services plus ports for market data, cache, settings, and watchlist persistence. Trading logic is divided into strategy, backtest, and intelligent-agent domain packages.
 - `trade-infrastructure`: concrete adapters for PostgreSQL, MyBatis mapper interfaces, in-memory cache, AkShare HTTP access, datasource, and REST client beans.
 - `trade-trigger`: concrete Spring Web controllers, WebSocket endpoint, startup initialization, and scheduled refresh triggers.
 - `trade-types`: typed config and small utility types.
@@ -19,6 +19,12 @@ resources under `src/main/resources/mybatis/`. `trade-trigger` depends on API
 contracts and domain services for concrete HTTP/WebSocket implementations.
 Infrastructure depends on domain ports and API payload DTOs while providing the
 runtime PostgreSQL, cache, and adapter implementations.
+
+## Trade Domain Boundaries
+
+- `com.tradeagent.domain.strategy`: signal-only strategy rules and strategy lookup contracts.
+- `com.tradeagent.domain.backtest`: scenario inputs, execution outputs, orders, trades, holding periods, and backtest engine contracts.
+- `com.tradeagent.domain.agent`: intelligent-agent inputs and explainable decision outputs.
 
 ## Run And Verify
 

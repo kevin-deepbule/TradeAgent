@@ -13,7 +13,7 @@ This directory contains the DDD-oriented Spring Boot backend.
 
 - `trade-api/`: public REST API contracts and DTO payload classes.
 - `trade-app/`: application entrypoint, runtime properties, and MyBatis XML mapper resources.
-- `trade-domain/`: domain services and ports; do not depend on infrastructure implementations from here.
+- `trade-domain/`: domain services and ports; do not depend on infrastructure implementations from here. New trading logic should be placed under the strategy, backtest, or agent domain packages described below.
 - `trade-infrastructure/`: PostgreSQL persistence, MyBatis mapper interfaces, in-memory cache, AkShare adapter HTTP client, datasource, and REST client beans.
 - `trade-trigger/`: concrete Spring Web controllers, exception translation, CORS, WebSocket endpoint, startup initialization, and scheduled tasks.
 - `trade-types/`: typed config and small shared utilities.
@@ -47,6 +47,13 @@ The frontend depends on the K-line payload fields:
 Avoid renaming response fields unless the frontend is updated in the same change.
 WebSocket stock streams should send cached K-line payloads immediately when
 available, and only block on adapter refresh when no cached payload exists.
+
+## Domain Boundaries
+
+- `com.tradeagent.domain.strategy`: strategy identifiers, signal-only strategy contracts, and strategy evaluation models.
+- `com.tradeagent.domain.backtest`: backtest scenarios, execution results, orders, trades, holding ranges, and engine contracts.
+- `com.tradeagent.domain.agent`: intelligent-agent context, explainable decisions, and agent decision contracts.
+- Existing `com.tradeagent.service` classes remain as application-facing domain services until their behavior is migrated into the newer domain packages.
 
 ## Commands
 
