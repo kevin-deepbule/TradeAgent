@@ -22,17 +22,17 @@ adapter.
 
 - Frontend: Vue 3 + Vite + ECharts in `frontend/`
 - Backend: DDD-oriented Spring Boot multi-module app + PostgreSQL in `backend/`
-- Backend infrastructure: Docker Compose in `backend/docker/`
+- Backend infrastructure: Docker Compose in `depoy/docker-compose-fundament.yml`
 - Adapter: FastAPI + AkShare + pandas in `akshare_adapter/`
 - Data source: AkShare
-- Database: PostgreSQL from `backend/docker/docker-compose-fundament.yml`
+- Database: PostgreSQL from `depoy/docker-compose-fundament.yml`
 
 ## Directory Boundaries
 
 - `frontend/` owns browser UI, ECharts configuration, API wrappers, and frontend-only strategy backtests.
 - `backend/` owns public REST APIs, WebSocket APIs, persistence, caching, startup initialization, and trade advice through the DDD module split.
-- `backend/docker/` owns optional local infrastructure definitions for backend development.
 - `akshare_adapter/` owns AkShare calls and internal data-source adaptation.
+- `depoy/` owns optional local infrastructure definitions and environment examples for backend development dependencies.
 - Root-level `README.md` and `AGENTS.md` describe the whole workspace.
 - Subdirectory `README.md` and `AGENTS.md` files describe local module rules.
 
@@ -59,8 +59,9 @@ setsid java -jar backend/trade-app/target/trade-app-0.1.0.jar --debug=false > .l
 Backend infrastructure:
 
 ```bash
-docker compose -f backend/docker/docker-compose-fundament.yml up -d
-docker compose -f backend/docker/docker-compose-fundament.yml down
+cp depoy/.env.example depoy/.env
+docker compose --env-file depoy/.env -f depoy/docker-compose-fundament.yml up -d
+docker compose --env-file depoy/.env -f depoy/docker-compose-fundament.yml down
 ```
 
 Frontend:
@@ -159,7 +160,7 @@ Execution assumptions:
 - Keep backend route paths stable because the frontend calls them directly.
 - Keep backend module boundaries intact: `trade-api` owns public API contracts and DTO payloads, `trade-app` assembles the runnable app, `trade-domain` owns domain services and ports, `trade-infrastructure` implements storage/cache/external clients, `trade-trigger` owns concrete Spring Web implementations plus startup and scheduled tasks, and `trade-types` owns shared config/util types.
 - Keep database runtime state in Docker named volumes instead of git.
-- Keep Docker Compose files in `backend/docker/` focused on local backend infrastructure; do not put application runtime state in git.
+- Keep Docker Compose dependency services in `depoy/docker-compose-fundament.yml`; do not put application runtime state in git.
 - Keep AkShare access isolated in `akshare_adapter/`; Java should call the adapter instead of reimplementing AkShare scraping.
 - When a change affects behavior, commands, configuration, APIs, directory responsibilities, or runtime assumptions, update the nearest matching `README.md` and `AGENTS.md` in the same change.
 - The frontend Vite dev port uses `strictPort`; if `5173` is occupied, fix the process conflict instead of silently changing ports.

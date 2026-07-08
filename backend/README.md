@@ -26,8 +26,8 @@ The backend is the public API boundary for the browser. It owns:
 - `trade-trigger/`: concrete Spring Web controllers, exception handling, CORS, WebSocket endpoint, startup initialization, and scheduled refresh triggers.
 - `trade-types/`: typed config and backend utility types.
 - `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
-- `docker/`: optional Docker Compose definitions for local backend infrastructure.
 - `docs/PostgreSQL/`: first-run PostgreSQL schema initialization scripts.
+- `../depoy/`: Docker Compose services and environment examples for local infrastructure dependencies.
 
 ### Trade Domain Packages
 
@@ -63,7 +63,7 @@ java -jar backend/trade-app/target/trade-app-0.1.0.jar
 
 ## Docker Infrastructure
 
-`docker/docker-compose-fundament.yml` starts local dependencies for backend
+`../depoy/docker-compose-fundament.yml` starts local dependencies for backend
 development:
 
 - PostgreSQL 16 on `localhost:5432`
@@ -75,36 +75,37 @@ development:
 Start the services:
 
 ```bash
-docker compose -f backend/docker/docker-compose-fundament.yml up -d
+cp depoy/.env.example depoy/.env
+docker compose --env-file depoy/.env -f depoy/docker-compose-fundament.yml up -d
 ```
 
 Check service status:
 
 ```bash
-docker compose -f backend/docker/docker-compose-fundament.yml ps
+docker compose --env-file depoy/.env -f depoy/docker-compose-fundament.yml ps
 ```
 
 Stop the services:
 
 ```bash
-docker compose -f backend/docker/docker-compose-fundament.yml down
+docker compose --env-file depoy/.env -f depoy/docker-compose-fundament.yml down
 ```
 
 The compose file uses Docker named volumes for service state. Remove those
 volumes only when you intentionally want to reset local infrastructure data:
 
 ```bash
-docker compose -f backend/docker/docker-compose-fundament.yml down -v
+docker compose --env-file depoy/.env -f depoy/docker-compose-fundament.yml down -v
 ```
 
 Environment variables can override defaults:
 
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT`
 - `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS`, `RABBITMQ_PORT`, `RABBITMQ_MANAGEMENT_PORT`
-- `REDIS_PORT`
+- `REDIS_PASSWORD`, `REDIS_PORT`
 
-PostgreSQL mounts `docs/PostgreSQL/` into `/docker-entrypoint-initdb.d`, so the
-scripts run when the database volume is first initialized.
+PostgreSQL mounts `backend/docs/PostgreSQL/` into `/docker-entrypoint-initdb.d`,
+so the scripts run when the database volume is first initialized.
 
 ## Test
 

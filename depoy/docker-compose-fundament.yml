@@ -14,7 +14,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - tradeagent-postgres-data:/var/lib/postgresql/data
-      - ../docs/PostgreSQL:/docker-entrypoint-initdb.d:ro
+      - ../backend/docs/PostgreSQL:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -47,13 +47,15 @@ services:
     image: redis:7-alpine
     container_name: tradeagent-redis
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-tradeagent}
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-tradeagent}"]
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - tradeagent-redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping"]
       interval: 10s
       timeout: 5s
       retries: 5

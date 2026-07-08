@@ -8,8 +8,8 @@ backend, and Python AkShare adapter.
 ```text
 frontend/          Vue 3 + Vite + ECharts dashboard
 backend/           DDD-oriented Spring Boot multi-module backend
-backend/docker/    Optional Docker Compose services for backend development
 akshare_adapter/   FastAPI internal service wrapping AkShare
+depoy/             Docker Compose services and environment examples
 ```
 
 Runtime flow:
@@ -54,7 +54,8 @@ mkdir -p .logs && setsid python3 -m akshare_adapter.server > .logs/akshare-adapt
 Start backend infrastructure:
 
 ```bash
-docker compose -f backend/docker/docker-compose-fundament.yml up -d
+cp depoy/.env.example depoy/.env
+docker compose --env-file depoy/.env -f depoy/docker-compose-fundament.yml up -d
 ```
 
 Run the backend:
@@ -82,6 +83,14 @@ Default local endpoints:
 
 Adapter logs are written to `.logs/akshare-adapter.log`.
 
+Useful infrastructure commands:
+
+```bash
+docker compose --env-file depoy/.env -f depoy/docker-compose-fundament.yml ps
+docker compose --env-file depoy/.env -f depoy/docker-compose-fundament.yml logs -f
+docker compose --env-file depoy/.env -f depoy/docker-compose-fundament.yml down
+```
+
 ## Verification
 
 ```bash
@@ -97,7 +106,7 @@ curl --noproxy '*' http://localhost:8001/api/stocks/000001/kline
 ## Runtime State
 
 - PostgreSQL data: Docker named volume `tradeagent-postgres-data`
-- Optional Docker service state: Docker named volumes declared in `backend/docker/`
+- Optional Docker service state: Docker named volumes declared in `depoy/docker-compose-fundament.yml`
 - Local logs: `.logs/`
 - Frontend build output: `frontend/dist/`
 - Maven build output: `backend/*/target/`
