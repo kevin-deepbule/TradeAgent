@@ -1,9 +1,8 @@
 # TradeAgent Backend
 
-Spring Boot backend for TradeAgent. It is split into DDD-oriented Maven modules,
-exposes the public REST and WebSocket API used by the Vue frontend, persists
-local user settings in PostgreSQL, and calls the internal AkShare adapter for stock
-data.
+Spring Boot modular monolith for TradeAgent. Maven modules are split by business
+capability, while one `trade-app` process exposes the REST and WebSocket APIs,
+persists local user settings in PostgreSQL, and calls the internal AkShare adapter.
 
 ## Role
 
@@ -19,22 +18,25 @@ The backend is the public API boundary for the browser. It owns:
 ## Structure
 
 - `pom.xml`: parent Maven reactor build.
-- `trade-app/`: Spring Boot entrypoint, `application.properties`, and MyBatis XML mapper resources.
-- `trade-api/`: public REST API contracts and DTO payload classes.
-- `trade-domain/`: stock workflow services and ports for data source, cache, and persistence. Trading logic is being organized into strategy, backtest, and intelligent-agent domain packages.
-- `trade-infrastructure/`: PostgreSQL repositories and MyBatis mapper interfaces, in-memory cache, HTTP client, datasource, and REST client beans.
-- `trade-trigger/`: concrete Spring Web controllers, exception handling, CORS, WebSocket endpoint, startup initialization, and scheduled refresh triggers.
-- `trade-types/`: typed config and backend utility types.
+- `trade-market/`: stock identity, K-line DTOs and APIs, AkShare HTTP client, in-memory cache, advice calculation, refresh job, and stock WebSocket updates.
+- `trade-watchlist/`: default-stock and watchlist APIs, workflow service, PostgreSQL repositories, MyBatis mappers, and startup initialization.
+- `trade-strategy/`: strategy rules, backtest contracts, and explainable decision models. It depends only on market data types from `trade-market`.
+- `trade-app/`: Spring Boot entrypoint, runtime properties, health endpoint, exception handling, CORS, and assembly of the other modules.
 - `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
 - `docs/PostgreSQL/`: first-run PostgreSQL schema initialization scripts.
 - `../depoy/`: Docker Compose services and environment examples for local infrastructure dependencies.
 
-### Trade Domain Packages
+### Module Dependencies
 
-- `com.tradeagent.domain.strategy`: strategy identifiers, signal-only strategy contracts, and strategy evaluation models.
-- `com.tradeagent.domain.backtest`: backtest scenarios, execution results, orders, trades, holding ranges, and engine contracts.
-- `com.tradeagent.domain.agent`: intelligent-agent context, explainable decisions, and agent decision contracts.
-- `com.tradeagent.service`: existing application-facing domain services that will be migrated gradually.
+```text
+trade-app -> trade-market
+trade-app -> trade-watchlist -> trade-market
+trade-app -> trade-strategy  -> trade-market
+```
+
+Dependencies point from the runnable application and higher-level capabilities
+toward the market capability. `trade-market` does not depend on watchlist or
+strategy code, so Maven enforces the main module boundary at compile time.
 
 ## Run
 
@@ -161,3 +163,6 @@ Runtime settings are configured in `trade-app/src/main/resources/application.pro
 - `POSTGRES_USER`, default `tradeagent`
 - `POSTGRES_PASSWORD`, default `tradeagent`
 - `mybatis.mapper-locations`, default `classpath*:mybatis/*.xml`
+
+Watchlist-owned MyBatis XML mappers live in
+`trade-watchlist/src/main/resources/mybatis/` and are loaded from the classpath.

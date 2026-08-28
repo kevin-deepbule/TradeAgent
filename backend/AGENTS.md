@@ -1,24 +1,28 @@
 # Backend Agent Guide
 
-This directory contains the DDD-oriented Spring Boot backend.
+This directory contains the business-oriented Spring Boot modular monolith.
 
 ## Responsibility
 
 - Keep public REST and WebSocket route paths stable because the frontend calls them directly.
 - Keep persistence, caching, startup initialization, and trade advice in the backend.
-- Call the local Python AkShare adapter through the infrastructure client implementation.
+- Call the local Python AkShare adapter through the market module client.
 - Do not reimplement AkShare scraping or data-source logic in Java.
 
 ## Structure Rules
 
-- `trade-api/`: public REST API contracts and DTO payload classes.
-- `trade-app/`: application entrypoint, runtime properties, and MyBatis XML mapper resources.
-- `trade-domain/`: domain services and ports; do not depend on infrastructure implementations from here. New trading logic should be placed under the strategy, backtest, or agent domain packages described below.
-- `trade-infrastructure/`: PostgreSQL persistence, MyBatis mapper interfaces, in-memory cache, AkShare adapter HTTP client, datasource, and REST client beans.
-- `trade-trigger/`: concrete Spring Web controllers, exception translation, CORS, WebSocket endpoint, startup initialization, and scheduled tasks.
-- `trade-types/`: typed config and small shared utilities.
+- `trade-market/`: stock identity, K-line DTOs and APIs, advice, caching, AkShare HTTP access, refresh scheduling, and WebSocket updates.
+- `trade-watchlist/`: default-stock and watchlist workflows, APIs, PostgreSQL repositories, MyBatis mappers, and startup initialization.
+- `trade-strategy/`: strategy rules, backtest contracts, and explainable-decision models.
+- `trade-app/`: runnable entrypoint, runtime properties, health API, error translation, CORS, and module assembly.
 - `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
 - `../depoy/`: Docker Compose services and environment examples for local infrastructure dependencies.
+
+Dependencies must remain acyclic: `trade-watchlist` and `trade-strategy` may
+depend on `trade-market`; `trade-market` must not depend on either of them; and
+only `trade-app` may assemble every capability module. Keep controllers,
+services, clients, repositories, scheduled jobs, DTOs, and resources inside the
+business module that owns the behavior.
 
 ## API Contract
 
@@ -48,12 +52,12 @@ Avoid renaming response fields unless the frontend is updated in the same change
 WebSocket stock streams should send cached K-line payloads immediately when
 available, and only block on adapter refresh when no cached payload exists.
 
-## Domain Boundaries
+## Capability Packages
 
-- `com.tradeagent.domain.strategy`: strategy identifiers, signal-only strategy contracts, and strategy evaluation models.
-- `com.tradeagent.domain.backtest`: backtest scenarios, execution results, orders, trades, holding ranges, and engine contracts.
-- `com.tradeagent.domain.agent`: intelligent-agent context, explainable decisions, and agent decision contracts.
-- Existing `com.tradeagent.service` classes remain as application-facing domain services until their behavior is migrated into the newer domain packages.
+- `com.tradeagent.market`: market data APIs, DTOs, AkShare client, cache, refresh, and advice workflow.
+- `com.tradeagent.watchlist`: persisted default-stock and watchlist behavior.
+- `com.tradeagent.strategy`: strategy rules, backtest contracts, and agent decision types.
+- `com.tradeagent.app`: process-level health, error handling, configuration, and startup assembly.
 
 ## Commands
 
@@ -92,7 +96,7 @@ curl --noproxy '*' http://localhost:8001/api/stocks/000001/kline
 
 - Default backend port is `8001`.
 - Default adapter base URL is `http://localhost:8002`.
-- MyBatis XML mapper resources are loaded from `trade-app/src/main/resources/mybatis/`.
+- MyBatis XML mapper resources are owned by and loaded from `trade-watchlist/src/main/resources/mybatis/`.
 - Local PostgreSQL state lives in the `tradeagent-postgres-data` Docker named volume.
 - Docker infrastructure runs PostgreSQL, RabbitMQ, and Redis from `depoy/docker-compose-fundament.yml`.
 - PostgreSQL initialization scripts live in `docs/PostgreSQL/` and are mounted into `/docker-entrypoint-initdb.d` for first-run database initialization.

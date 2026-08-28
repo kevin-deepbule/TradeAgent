@@ -1,4 +1,4 @@
-<!-- Runnable Spring Boot application that assembles all backend modules. -->
+<!-- Watchlist and dashboard-settings capability module. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -10,8 +10,8 @@
         <version>0.1.0</version>
     </parent>
 
-    <artifactId>trade-app</artifactId>
-    <name>trade-app</name>
+    <artifactId>trade-watchlist</artifactId>
+    <name>trade-watchlist</name>
 
     <dependencies>
         <dependency>
@@ -20,14 +20,17 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.tradeagent</groupId>
-            <artifactId>trade-watchlist</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.tradeagent</groupId>
-            <artifactId>trade-strategy</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.mybatis.spring.boot</groupId>
+            <artifactId>mybatis-spring-boot-starter</artifactId>
+            <version>3.0.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -35,24 +38,8 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-websocket</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <skip>false</skip>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>

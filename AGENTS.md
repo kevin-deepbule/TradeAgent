@@ -21,7 +21,7 @@ This is a Java + Vue A-share K-line dashboard with a small Python AkShare
 adapter.
 
 - Frontend: Vue 3 + Vite + ECharts in `frontend/`
-- Backend: DDD-oriented Spring Boot multi-module app + PostgreSQL in `backend/`
+- Backend: business-oriented Spring Boot modular monolith + PostgreSQL in `backend/`
 - Backend infrastructure: Docker Compose in `depoy/docker-compose-fundament.yml`
 - Adapter: FastAPI + AkShare + pandas in `akshare_adapter/`
 - Data source: AkShare
@@ -30,7 +30,7 @@ adapter.
 ## Directory Boundaries
 
 - `frontend/` owns browser UI, ECharts configuration, API wrappers, and frontend-only strategy backtests.
-- `backend/` owns public REST APIs, WebSocket APIs, persistence, caching, startup initialization, and trade advice through the DDD module split.
+- `backend/` owns public REST APIs, WebSocket APIs, persistence, caching, startup initialization, and trade advice through business capability modules.
 - `akshare_adapter/` owns AkShare calls and internal data-source adaptation.
 - `depoy/` owns optional local infrastructure definitions and environment examples for backend development dependencies.
 - Root-level `README.md` and `AGENTS.md` describe the whole workspace.
@@ -158,7 +158,7 @@ Execution assumptions:
 ## Development Notes
 
 - Keep backend route paths stable because the frontend calls them directly.
-- Keep backend module boundaries intact: `trade-api` owns public API contracts and DTO payloads, `trade-app` assembles the runnable app, `trade-domain` owns domain services and ports, `trade-infrastructure` implements storage/cache/external clients, `trade-trigger` owns concrete Spring Web implementations plus startup and scheduled tasks, and `trade-types` owns shared config/util types.
+- Keep backend capability boundaries intact: `trade-market` owns stock identity, K-line, advice, caching, AkShare HTTP access, refresh jobs, and live market APIs; `trade-watchlist` owns default-stock and watchlist workflows plus PostgreSQL persistence; `trade-strategy` owns strategy, backtest, and explainable-decision contracts; and `trade-app` only assembles the runnable process and cross-cutting web behavior.
 - Keep database runtime state in Docker named volumes instead of git.
 - Keep Docker Compose dependency services in `depoy/docker-compose-fundament.yml`; do not put application runtime state in git.
 - Keep AkShare access isolated in `akshare_adapter/`; Java should call the adapter instead of reimplementing AkShare scraping.

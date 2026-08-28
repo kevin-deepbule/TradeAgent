@@ -1,4 +1,4 @@
-<!-- Runnable Spring Boot application that assembles all backend modules. -->
+<!-- Stock identity, K-line, advice, cache, and live-update capability module. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -10,24 +10,13 @@
         <version>0.1.0</version>
     </parent>
 
-    <artifactId>trade-app</artifactId>
-    <name>trade-app</name>
+    <artifactId>trade-market</artifactId>
+    <name>trade-market</name>
 
     <dependencies>
         <dependency>
-            <groupId>com.tradeagent</groupId>
-            <artifactId>trade-market</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.tradeagent</groupId>
-            <artifactId>trade-watchlist</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.tradeagent</groupId>
-            <artifactId>trade-strategy</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -43,16 +32,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <skip>false</skip>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>

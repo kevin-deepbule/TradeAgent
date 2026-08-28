@@ -1,30 +1,40 @@
 # Backend Modules
 
-The backend uses a Maven reactor with DDD-oriented module boundaries.
+The backend is one deployable Spring Boot process built from Maven modules that
+follow business capabilities instead of technical layers.
 
 ## Module Responsibilities
 
-- `trade-api`: public REST API contracts and DTO payload classes.
-- `trade-app`: runnable Spring Boot application, runtime properties, and MyBatis XML mapper resources.
-- `trade-domain`: stock workflow services plus ports for market data, cache, settings, and watchlist persistence. Trading logic is divided into strategy, backtest, and intelligent-agent domain packages.
-- `trade-infrastructure`: concrete adapters for PostgreSQL, MyBatis mapper interfaces, in-memory cache, AkShare HTTP access, datasource, and REST client beans.
-- `trade-trigger`: concrete Spring Web controllers, WebSocket endpoint, startup initialization, and scheduled refresh triggers.
-- `trade-types`: typed config and small utility types.
-- `docs/PostgreSQL`: idempotent SQL scripts for local PostgreSQL schema initialization.
+- `trade-market`: resolves stocks, fetches K-lines from the internal AkShare
+  adapter, calculates advice, caches active symbols, refreshes quotes, and owns
+  the stock REST and WebSocket endpoints.
+- `trade-watchlist`: owns the default stock and watchlist, including REST
+  endpoints, workflow coordination, PostgreSQL repositories, MyBatis mappers,
+  and startup warming of market symbols.
+- `trade-strategy`: owns signal-rule, backtest, and explainable-decision types.
+  The frontend remains the runtime owner of the currently implemented strategy
+  backtests.
+- `trade-app`: owns the Spring Boot entrypoint, runtime properties, health
+  endpoint, exception translation, CORS, and final executable packaging.
+- `docs/PostgreSQL`: contains idempotent first-run PostgreSQL schema scripts.
 
 ## Dependency Direction
 
-`trade-app` assembles all modules and carries runtime MyBatis XML mapper
-resources under `src/main/resources/mybatis/`. `trade-trigger` depends on API
-contracts and domain services for concrete HTTP/WebSocket implementations.
-Infrastructure depends on domain ports and API payload DTOs while providing the
-runtime PostgreSQL, cache, and adapter implementations.
+```text
+trade-app -> trade-market
+trade-app -> trade-watchlist -> trade-market
+trade-app -> trade-strategy  -> trade-market
+```
 
-## Trade Domain Boundaries
+Maven module dependencies enforce an acyclic graph. A capability keeps its own
+controllers, services, clients, repositories, jobs, DTOs, and resources; it
+must not place each technical layer in a separate Maven module. Cross-module
+calls should use a small service or data type exposed by the owning capability.
 
-- `com.tradeagent.domain.strategy`: signal-only strategy rules and strategy lookup contracts.
-- `com.tradeagent.domain.backtest`: scenario inputs, execution outputs, orders, trades, holding periods, and backtest engine contracts.
-- `com.tradeagent.domain.agent`: intelligent-agent inputs and explainable decision outputs.
+The next opportunity-discovery capability should be added as another business
+module, such as `trade-research`, and assembled by `trade-app`. It may consume
+market data but should not move research persistence or workflows into
+`trade-market`.
 
 ## Run And Verify
 

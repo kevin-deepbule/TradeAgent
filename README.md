@@ -7,7 +7,7 @@ backend, and Python AkShare adapter.
 
 ```text
 frontend/          Vue 3 + Vite + ECharts dashboard
-backend/           DDD-oriented Spring Boot multi-module backend
+backend/           Business-oriented Spring Boot modular monolith
 akshare_adapter/   FastAPI internal service wrapping AkShare
 depoy/             Docker Compose services and environment examples
 ```

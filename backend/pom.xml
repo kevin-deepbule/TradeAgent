@@ -1,4 +1,4 @@
-<!-- Parent Maven build for the DDD-oriented backend modules. -->
+<!-- Parent Maven build for the business-oriented modular monolith. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -16,14 +16,12 @@
     <version>0.1.0</version>
     <packaging>pom</packaging>
     <name>trade-agent-backend</name>
-    <description>DDD-oriented Spring Boot backend for the TradeAgent dashboard</description>
+    <description>Business-oriented modular monolith for the TradeAgent dashboard</description>
 
     <modules>
-        <module>trade-types</module>
-        <module>trade-domain</module>
-        <module>trade-infrastructure</module>
-        <module>trade-api</module>
-        <module>trade-trigger</module>
+        <module>trade-market</module>
+        <module>trade-watchlist</module>
+        <module>trade-strategy</module>
         <module>trade-app</module>
     </modules>
 
