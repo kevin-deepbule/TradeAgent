@@ -1,0 +1,41 @@
+{
+  "version": "v1.0.0",
+  "defaultPolicy": {
+    "keywords": [],
+    "basePe": 20.0,
+    "minPe": 8.0,
+    "maxPe": 38.0
+  },
+  "rules": [
+    {
+      "keywords": ["创新药", "生物制品", "医疗研发外包"],
+      "basePe": 32.0,
+      "minPe": 15.0,
+      "maxPe": 55.0
+    },
+    {
+      "keywords": ["化学制剂", "中药", "医疗器械", "医药商业", "医药生物"],
+      "basePe": 25.0,
+      "minPe": 12.0,
+      "maxPe": 45.0
+    },
+    {
+      "keywords": ["宠物食品", "宠物"],
+      "basePe": 26.0,
+      "minPe": 14.0,
+      "maxPe": 42.0
+    },
+    {
+      "keywords": ["轮胎", "轮胎轮毂"],
+      "basePe": 14.0,
+      "minPe": 7.0,
+      "maxPe": 24.0
+    }
+  ],
+  "bands": {
+    "deepValue": 0.70,
+    "value": 0.85,
+    "fair": 1.15,
+    "expensive": 1.35
+  }
+}

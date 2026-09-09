@@ -1,5 +1,5 @@
 <script setup>
-// Dashboard header with stock query, watchlist add, profile, and copy-mode actions.
+// Dashboard header with stock query, research, profile, and copy-mode actions.
 
 import { computed, ref } from "vue";
 import { readProfile, resolveAvatar } from "../services/profileStorage";
@@ -17,6 +17,7 @@ defineEmits([
   "add-watchlist",
   "set-default-stock",
   "toggle-copy-selection",
+  "open-research",
   "open-profile",
 ]);
 
@@ -68,6 +69,9 @@ const profileAvatarStyle = computed(() => {
       </button>
       <button class="copy-button" type="button" @click="$emit('toggle-copy-selection')">
         {{ copySelectionMode ? "取消选区" : "复制K线数据" }}
+      </button>
+      <button class="research-entry-button" type="button" @click="$emit('open-research')">
+        财报估值
       </button>
     </div>
 

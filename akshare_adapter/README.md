@@ -13,6 +13,8 @@ can change.
 - `server.py`: uvicorn entrypoint.
 - `main.py`: FastAPI app and internal routes.
 - `stock_adapter.py`: AkShare calls, symbol resolution, and K-line shaping.
+- `financial_adapter.py`: Shenwan industries, financial disclosures, formal
+  quarterly facts, current market snapshots, and analyst EPS forecasts.
 - `config.py`: adapter host, port, and K-line window settings.
 - `utils.py`: stock-symbol, text, market, date, and NaN helpers.
 - `__init__.py`: package marker.
@@ -54,8 +56,19 @@ curl --noproxy '*' http://localhost:8002/internal/health
 - `GET /internal/health`
 - `GET /internal/stocks/{query}/resolve`
 - `GET /internal/stocks/{symbol}/kline?name=...`
+- `GET /internal/research/industries?level=3`
+- `GET /internal/research/industries/{industryCode}/constituents`
+- `GET /internal/research/disclosures?report_period=YYYYMMDD`
+- `GET /internal/research/stocks/{symbol}/financials?report_period=YYYYMMDD&as_of=YYYY-MM-DD`
+- `POST /internal/research/market-snapshot`
+- `GET /internal/research/profit-forecasts`
 
 These routes are for the Java backend, not for direct browser use.
+
+Research routes use `sw_index_third_info`, `sw_index_third_cons`,
+`stock_yjyg_em`, `stock_yjkb_em`, `stock_yjbb_em`, quarterly profit/cash-flow
+statements, `stock_zh_a_spot_em`, and `stock_profit_forecast_em`. They expose a
+small normalized internal contract while keeping all AkShare calls in Python.
 
 ## Environment
 

@@ -110,6 +110,9 @@ curl --noproxy '*' http://localhost:8001/api/stocks/000001/kline
 - `DELETE /api/watchlist/{symbol}`
 - `GET /api/stocks/{query}/kline`
 - `WS /ws/stocks/{query}`
+- `GET /api/research/industries`
+- `POST /api/research/valuation-runs`
+- `GET /api/research/valuation-runs/{runId}`
 
 The K-line response includes:
 
@@ -158,7 +161,7 @@ Execution assumptions:
 ## Development Notes
 
 - Keep backend route paths stable because the frontend calls them directly.
-- Keep backend capability boundaries intact: `trade-market` owns stock identity, K-line, advice, caching, AkShare HTTP access, refresh jobs, and live market APIs; `trade-watchlist` owns default-stock and watchlist workflows plus PostgreSQL persistence; `trade-strategy` owns strategy, backtest, and explainable-decision contracts; and `trade-app` only assembles the runnable process and cross-cutting web behavior.
+- Keep backend capability boundaries intact: `trade-market` owns stock identity, K-line, advice, caching, market-data AkShare HTTP access, refresh jobs, and live market APIs; `trade-watchlist` owns default-stock and watchlist workflows plus PostgreSQL persistence; `trade-strategy` owns strategy, backtest, and explainable-decision contracts; `trade-research` owns finance-specific adapter access, deterministic profit forecasts and rule-PE baselines, persisted research runs, and bounded full-table DeepSeek PE review; and `trade-app` only assembles the runnable process and cross-cutting web behavior.
 - Keep database runtime state in Docker named volumes instead of git.
 - Keep Docker Compose dependency services in `depoy/docker-compose-fundament.yml`; do not put application runtime state in git.
 - Keep AkShare access isolated in `akshare_adapter/`; Java should call the adapter instead of reimplementing AkShare scraping.

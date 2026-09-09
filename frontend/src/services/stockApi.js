@@ -62,3 +62,39 @@ export async function deleteWatchlistItem(symbol) {
   );
   return response.json().catch(() => ({}));
 }
+
+export async function fetchResearchIndustries() {
+  // Load selectable Shenwan level-three industries for financial research.
+  const response = await fetch(`${apiBase}/api/research/industries`);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || "申万行业加载失败");
+  }
+  return response.json();
+}
+
+export async function createValuationRun(request) {
+  // Queue one multi-industry financial-report valuation task.
+  const response = await fetch(`${apiBase}/api/research/valuation-runs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || "财报估值任务创建失败");
+  }
+  return response.json();
+}
+
+export async function fetchValuationRun(runId) {
+  // Poll one financial-report valuation task and its ranked results.
+  const response = await fetch(
+    `${apiBase}/api/research/valuation-runs/${encodeURIComponent(runId)}`,
+  );
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || "财报估值任务读取失败");
+  }
+  return response.json();
+}

@@ -11,6 +11,7 @@ import WatchlistPanel from "./components/WatchlistPanel.vue";
 import { useBacktest } from "./composables/useBacktest";
 import { useStockDashboard } from "./composables/useStockDashboard";
 import ProfileCenterView from "./views/ProfileCenterView.vue";
+import FundamentalResearchView from "./views/FundamentalResearchView.vue";
 import WatchlistBacktestView from "./views/WatchlistBacktestView.vue";
 
 const {
@@ -104,6 +105,11 @@ function openProfilePage() {
   activePage.value = "profile";
 }
 
+function openResearchPage() {
+  // Switch from the K-line dashboard into the financial valuation workflow.
+  activePage.value = "fundamental-research";
+}
+
 function backToDashboard() {
   // Return to the main K-line dashboard without discarding local page state.
   activePage.value = "dashboard";
@@ -138,6 +144,11 @@ function backToDashboard() {
       @back="backToDashboard"
     />
 
+    <FundamentalResearchView
+      v-else-if="activePage === 'fundamental-research'"
+      @back="backToDashboard"
+    />
+
     <template v-else>
       <AppHeader
         v-model:query-input="queryInput"
@@ -148,6 +159,7 @@ function backToDashboard() {
         @add-watchlist="addToWatchlist()"
         @set-default-stock="setCurrentAsDefaultStock"
         @toggle-copy-selection="toggleCopySelection"
+        @open-research="openResearchPage"
         @open-profile="openProfilePage"
       />
 

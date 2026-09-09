@@ -54,6 +54,9 @@ docker compose --env-file depoy/.env -f depoy/docker-compose-fundament.yml down 
 
 - `.env` is local machine configuration and should not be committed.
 - `.env.example` keeps safe defaults for local development.
+- `DeepSeek_API_KEY` is read by the backend from the local `depoy/.env`; never
+  log or commit its value. The URL, model, enable switch, and full-table review
+  batch size are optional non-secret settings in the same file.
 - Redis requires `REDIS_PASSWORD`; use `redis-cli -a "$REDIS_PASSWORD"` for
   local manual checks.
 - PostgreSQL initializes from `backend/docs/PostgreSQL/` only when the database

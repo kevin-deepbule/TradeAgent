@@ -13,6 +13,18 @@ CREATE TABLE IF NOT EXISTS app_settings (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS research_valuation_run (
+    id UUID PRIMARY KEY,
+    status TEXT NOT NULL,
+    progress INTEGER NOT NULL,
+    message TEXT NOT NULL DEFAULT '',
+    request_payload JSONB NOT NULL,
+    result_payload JSONB NOT NULL DEFAULT '[]'::jsonb,
+    error TEXT,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL
+);
+
 ALTER TABLE watchlist
     ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at::timestamptz,
     ALTER COLUMN created_at SET DEFAULT now();

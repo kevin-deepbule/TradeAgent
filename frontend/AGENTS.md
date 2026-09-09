@@ -12,6 +12,8 @@ This directory contains the Vue 3 + Vite + ECharts dashboard.
 ## Structure Rules
 
 - `src/views/`: full-screen frontend views that compose controls and result panels.
+  `FundamentalResearchView.vue` owns Shenwan multi-selection, valuation-run
+  polling, ranked results, and evidence details.
   The personal center view is frontend-only and stores profile data, including
   avatar choices, in browser `localStorage` until a backend user API exists.
 - `src/components/`: display-focused Vue panels that receive props and emit user intents.
@@ -58,5 +60,8 @@ npm --prefix frontend run build
 - The Vite dev server uses `strictPort`; if `5173` is occupied, fix the process conflict instead of silently changing ports.
 - The K-line hover tooltip shows OHLC, volume, MA5/MA20/MA60 values, their day-over-day slopes, and volume/MA20 context.
 - Update `README.md` and this `AGENTS.md` whenever frontend behavior, commands, configuration, API usage, structure, backtest rules, or runtime assumptions change.
+- Financial research views must call `/api/research/**` through
+  `src/services/stockApi.js` and must display missing-data and AI status rather
+  than implying every result has full coverage.
 - Do not commit `node_modules/` or `dist/`.
 - Every source file and touched function should have concise comments where the project comment rules require them.

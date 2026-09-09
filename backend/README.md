@@ -13,14 +13,18 @@ The backend is the public API boundary for the browser. It owns:
 - PostgreSQL persistence.
 - Local caching and startup initialization.
 - Trade advice generation.
+- Financial-report valuation tasks and traceable research output.
 - Communication with `akshare_adapter/`.
 
 ## Structure
 
 - `pom.xml`: parent Maven reactor build.
-- `trade-market/`: stock identity, K-line DTOs and APIs, AkShare HTTP client, in-memory cache, advice calculation, refresh job, and stock WebSocket updates.
+- `trade-market/`: stock identity, K-line DTOs and APIs, market-data AkShare HTTP client, in-memory cache, advice calculation, refresh job, and stock WebSocket updates.
 - `trade-watchlist/`: default-stock and watchlist APIs, workflow service, PostgreSQL repositories, MyBatis mappers, and startup initialization.
 - `trade-strategy/`: strategy rules, backtest contracts, and explainable decision models. It depends only on market data types from `trade-market`.
+- `trade-research/`: Shenwan industries, disclosures, annual-profit scenarios,
+  forecast PE, rule-PE baselines and bounds, full-table DeepSeek PE review,
+  five valuation bands, ranking, and saved task snapshots.
 - `trade-app/`: Spring Boot entrypoint, runtime properties, health endpoint, exception handling, CORS, and assembly of the other modules.
 - `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
 - `docs/PostgreSQL/`: first-run PostgreSQL schema initialization scripts.
@@ -32,6 +36,7 @@ The backend is the public API boundary for the browser. It owns:
 trade-app -> trade-market
 trade-app -> trade-watchlist -> trade-market
 trade-app -> trade-strategy  -> trade-market
+trade-app -> trade-research  -> trade-market
 ```
 
 Dependencies point from the runnable application and higher-level capabilities
@@ -125,6 +130,15 @@ mvn -f backend/pom.xml test
 - `DELETE /api/watchlist/{symbol}`
 - `GET /api/stocks/{query}/kline`
 - `WS /ws/stocks/{query}`
+- `GET /api/research/industries`
+- `POST /api/research/valuation-runs`
+- `GET /api/research/valuation-runs/{runId}`
+
+Financial valuation runs are asynchronous. The create route returns `202`, and
+the run route exposes `QUEUED`, `RUNNING`, `COMPLETED`, or `FAILED` with
+progress. Completed results retain the report cutoff, source level, financial
+facts, three annual-profit scenarios, PE values, policy version, reasons,
+risks, falsification conditions, and AI status.
 
 The K-line response includes:
 
@@ -162,6 +176,12 @@ Runtime settings are configured in `trade-app/src/main/resources/application.pro
 - `POSTGRES_JDBC_URL`, default `jdbc:postgresql://localhost:5432/tradeagent`
 - `POSTGRES_USER`, default `tradeagent`
 - `POSTGRES_PASSWORD`, default `tradeagent`
+- `DeepSeek_API_KEY`, loaded from `depoy/.env` when present
+- `DEEPSEEK_BASE_URL`, default `https://api.deepseek.com`
+- `DEEPSEEK_MODEL`, default `deepseek-v4-flash`
+- `DEEPSEEK_ENABLED`, default `true`
+- `RESEARCH_AI_BATCH_SIZE`, default `10`, maximum `20`; every valuation row is
+  reviewed across as many batches as required
 - `mybatis.mapper-locations`, default `classpath*:mybatis/*.xml`
 
 Watchlist-owned MyBatis XML mappers live in

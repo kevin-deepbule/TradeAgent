@@ -32,6 +32,8 @@ Starting points:
 - `main.py`: FastAPI routes and HTTP exceptions.
 - `server.py`: uvicorn process entrypoint.
 - `stock_adapter.py`: AkShare calls, stock resolution, and K-line payload shaping.
+- `financial_adapter.py`: Shenwan membership, disclosures, formal quarterly
+  statements, spot valuation inputs, and analyst EPS forecast adaptation.
 - `config.py`: environment-derived adapter settings.
 - `utils.py`: small data, symbol, market, date, and NaN helpers.
 
@@ -62,6 +64,8 @@ curl --noproxy '*' http://localhost:8002/internal/health
 - `REALTIME_SPOT_CACHE_SECONDS` controls the short all-market realtime spot
   cache used while appending temporary intraday rows.
 - Keep this service internal to the backend; the frontend should not call it directly.
+- Financial research endpoints should keep upstream interface calls explicit
+  and return warnings when optional sources fail instead of hiding missing data.
 - Update `README.md` and this `AGENTS.md` whenever adapter behavior, commands, configuration, routes, AkShare usage, structure, or runtime assumptions change.
 - Do not commit `__pycache__/` or virtual environment files.
 - Every source file and public function should have concise comments or docstrings where the project comment rules require them.

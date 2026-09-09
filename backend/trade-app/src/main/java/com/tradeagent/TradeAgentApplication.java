@@ -3,10 +3,12 @@ package com.tradeagent;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /** Spring Boot entrypoint for the Java TradeAgent backend. */
 @SpringBootApplication
+@EnableAsync
 @EnableScheduling
 @ConfigurationPropertiesScan
 public class TradeAgentApplication {
@@ -15,4 +17,3 @@ public class TradeAgentApplication {
         SpringApplication.run(TradeAgentApplication.class, args);
     }
 }
-

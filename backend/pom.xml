@@ -22,6 +22,7 @@
         <module>trade-market</module>
         <module>trade-watchlist</module>
         <module>trade-strategy</module>
+        <module>trade-research</module>
         <module>trade-app</module>
     </modules>
 

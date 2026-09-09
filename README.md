@@ -7,7 +7,7 @@ backend, and Python AkShare adapter.
 
 ```text
 frontend/          Vue 3 + Vite + ECharts dashboard
-backend/           Business-oriented Spring Boot modular monolith
+backend/           Spring Boot modular monolith with market and research modules
 akshare_adapter/   FastAPI internal service wrapping AkShare
 depoy/             Docker Compose services and environment examples
 ```
@@ -78,6 +78,7 @@ Default local endpoints:
 
 - Frontend: `http://localhost:5173`
 - Backend health: `http://localhost:8001/api/health`
+- Financial research: open `财报估值` from the frontend dashboard header
 - AkShare adapter health: `http://localhost:8002/internal/health`
 - RabbitMQ management, when Docker infrastructure is running: `http://localhost:15672`
 
@@ -101,6 +102,7 @@ curl --noproxy '*' http://localhost:8002/internal/health
 curl --noproxy '*' http://localhost:8001/api/health
 curl --noproxy '*' http://localhost:8001/api/watchlist
 curl --noproxy '*' http://localhost:8001/api/stocks/000001/kline
+curl --noproxy '*' http://localhost:8001/api/research/industries
 ```
 
 ## Runtime State
