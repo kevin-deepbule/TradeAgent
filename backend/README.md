@@ -25,6 +25,9 @@ The backend is the public API boundary for the browser. It owns:
 - `trade-research/`: Shenwan industries, disclosures, annual-profit scenarios,
   forecast PE, rule-PE baselines and bounds, full-table DeepSeek PE review,
   five valuation bands, ranking, and saved task snapshots.
+- `../trade-agent/trade-scanner/`: architecture documentation for the planned
+  Java Scanner workflow, event persistence, deterministic policies, scheduling,
+  and reliable publication. It is not yet an executable Maven module.
 - `trade-app/`: Spring Boot entrypoint, runtime properties, health endpoint, exception handling, CORS, and assembly of the other modules.
 - `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
 - `docs/PostgreSQL/`: first-run PostgreSQL schema initialization scripts.

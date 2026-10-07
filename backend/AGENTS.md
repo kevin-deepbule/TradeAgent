@@ -17,15 +17,19 @@ This directory contains the business-oriented Spring Boot modular monolith.
 - `trade-research/`: finance-specific AkShare adapter access, financial
   disclosures, deterministic forecasts and rule-PE baselines, research
   persistence, full-table bounded DeepSeek PE review, and ranking.
+- `../trade-agent/trade-scanner/`: planned Java Scanner orchestration, persistence,
+  deterministic policies, scheduling, model integration, and reliable event
+  publication. It currently contains architecture documentation only.
 - `trade-app/`: runnable entrypoint, runtime properties, health API, error translation, CORS, and module assembly.
 - `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
 - `../depoy/`: Docker Compose services and environment examples for local infrastructure dependencies.
 
 Dependencies must remain acyclic: `trade-watchlist` and `trade-strategy` may
-depend on `trade-market`; `trade-market` must not depend on either of them; and
-only `trade-app` may assemble every capability module. Keep controllers,
-services, clients, repositories, scheduled jobs, DTOs, and resources inside the
-business module that owns the behavior.
+depend on `trade-market`; planned `trade-scanner` may depend on
+`trade-watchlist` and `trade-market`; `trade-market` must not depend on higher
+level capabilities; and only `trade-app` may assemble every capability module.
+Keep controllers, services, clients, repositories, scheduled jobs, DTOs, and
+resources inside the business module that owns the behavior.
 
 ## API Contract
 
@@ -65,6 +69,8 @@ available, and only block on adapter refresh when no cached payload exists.
 - `com.tradeagent.strategy`: strategy rules, backtest contracts, and agent decision types.
 - `com.tradeagent.research`: financial-report data, valuation tasks, policies,
   persistence, and explanatory research output.
+- `com.tradeagent.scanner`: planned event collection, extraction,
+  deduplication, mapping, validation, scoring, persistence, and publication.
 - `com.tradeagent.app`: process-level health, error handling, configuration, and startup assembly.
 
 ## Commands

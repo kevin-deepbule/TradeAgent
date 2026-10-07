@@ -31,9 +31,31 @@ python3 -m pip install -r requirements.txt
 
 ## Run
 
+Run the adapter from the repository root (`~/TradeAgent`), not from inside the
+`akshare_adapter/` directory. Running from the repository root ensures Python
+can resolve the `akshare_adapter` package correctly.
+
+Start it in the foreground while developing:
+
 ```bash
+cd ~/TradeAgent
 source .venv/bin/activate
-mkdir -p .logs && setsid python3 -m akshare_adapter.server > .logs/akshare-adapter.log 2>&1 < /dev/null &
+python3 -m akshare_adapter.server
+```
+
+Or start it in the background and write output to a log file:
+
+```bash
+cd ~/TradeAgent
+source .venv/bin/activate
+mkdir -p .logs
+setsid python3 -m akshare_adapter.server > .logs/akshare-adapter.log 2>&1 < /dev/null &
+```
+
+Follow the background-process log with:
+
+```bash
+tail -f .logs/akshare-adapter.log
 ```
 
 Defaults:

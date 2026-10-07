@@ -17,6 +17,10 @@ follow business capabilities instead of technical layers.
 - `trade-research`: owns Shenwan industry selection, financial-report runs,
   deterministic profit forecasts and rule-PE baselines, PostgreSQL run
   snapshots, bounded full-table DeepSeek PE review, and final ranking.
+- `../trade-agent/trade-scanner`: planned Java capability for message collection orchestration,
+  structured event extraction, deduplication, stock mapping, source validation,
+  importance scoring, Scanner persistence, scheduling, and reliable RabbitMQ
+  publication. It currently contains architecture documentation only.
 - `trade-app`: owns the Spring Boot entrypoint, runtime properties, health
   endpoint, exception translation, CORS, and final executable packaging.
 - `docs/PostgreSQL`: contains idempotent first-run PostgreSQL schema scripts.
@@ -28,6 +32,7 @@ trade-app -> trade-market
 trade-app -> trade-watchlist -> trade-market
 trade-app -> trade-strategy  -> trade-market
 trade-app -> trade-research  -> trade-market
+trade-app -> trade-scanner   -> trade-watchlist -> trade-market  (planned)
 ```
 
 Maven module dependencies enforce an acyclic graph. A capability keeps its own
@@ -40,6 +45,11 @@ adapter. Versioned rules produce the profit forecast, rule-PE baseline, and PE
 bounds. Every row is sent to DeepSeek in bounded batches; an in-range AI PE is
 adopted and dependent valuation fields are recalculated, while missing,
 out-of-range, or failed responses retain the rule PE.
+
+Planned `trade-scanner` keeps its workflow, database state, deterministic
+policies, scheduling, and outbox in Java. It calls `akshare_adapter/` for
+AkShare-backed source data and may call a small Python model service only when
+a concrete embedding, NLP, or GPU dependency cannot reasonably run in Java.
 
 ## Run And Verify
 

@@ -22,6 +22,7 @@ adapter.
 
 - Frontend: Vue 3 + Vite + ECharts in `frontend/`
 - Backend: business-oriented Spring Boot modular monolith + PostgreSQL in `backend/`
+- Agent modules: planned Java agent capabilities in `trade-agent/`
 - Backend infrastructure: Docker Compose in `depoy/docker-compose-fundament.yml`
 - Adapter: FastAPI + AkShare + pandas in `akshare_adapter/`
 - Data source: AkShare
@@ -31,6 +32,8 @@ adapter.
 
 - `frontend/` owns browser UI, ECharts configuration, API wrappers, and frontend-only strategy backtests.
 - `backend/` owns public REST APIs, WebSocket APIs, persistence, caching, startup initialization, and trade advice through business capability modules.
+- `trade-agent/` owns planned Java agent workflows that are assembled by the
+  backend application.
 - `akshare_adapter/` owns AkShare calls and internal data-source adaptation.
 - `depoy/` owns optional local infrastructure definitions and environment examples for backend development dependencies.
 - Root-level `README.md` and `AGENTS.md` describe the whole workspace.
@@ -161,10 +164,13 @@ Execution assumptions:
 ## Development Notes
 
 - Keep backend route paths stable because the frontend calls them directly.
-- Keep backend capability boundaries intact: `trade-market` owns stock identity, K-line, advice, caching, market-data AkShare HTTP access, refresh jobs, and live market APIs; `trade-watchlist` owns default-stock and watchlist workflows plus PostgreSQL persistence; `trade-strategy` owns strategy, backtest, and explainable-decision contracts; `trade-research` owns finance-specific adapter access, deterministic profit forecasts and rule-PE baselines, persisted research runs, and bounded full-table DeepSeek PE review; and `trade-app` only assembles the runnable process and cross-cutting web behavior.
+- Keep backend capability boundaries intact: `trade-market` owns stock identity, K-line, advice, caching, market-data AkShare HTTP access, refresh jobs, and live market APIs; `trade-watchlist` owns default-stock and watchlist workflows plus PostgreSQL persistence; `trade-strategy` owns strategy, backtest, and explainable-decision contracts; `trade-research` owns finance-specific adapter access, deterministic profit forecasts and rule-PE baselines, persisted research runs, and bounded full-table DeepSeek PE review; planned `trade-scanner` owns event collection orchestration, persistence, validation, scoring, scheduling, and reliable publication; and `trade-app` only assembles the runnable process and cross-cutting web behavior.
 - Keep database runtime state in Docker named volumes instead of git.
 - Keep Docker Compose dependency services in `depoy/docker-compose-fundament.yml`; do not put application runtime state in git.
 - Keep AkShare access isolated in `akshare_adapter/`; Java should call the adapter instead of reimplementing AkShare scraping.
+- Implement planned Scanner orchestration, persistence, scheduling, policies,
+  messaging, and APIs in `trade-agent/trade-scanner/`. Use Python only for AkShare
+  adaptation or a concrete Python-specific model dependency.
 - When a change affects behavior, commands, configuration, APIs, directory responsibilities, or runtime assumptions, update the nearest matching `README.md` and `AGENTS.md` in the same change.
 - The frontend Vite dev port uses `strictPort`; if `5173` is occupied, fix the process conflict instead of silently changing ports.
 - The backend default port is `8001` because `8000` is unavailable in the current environment.

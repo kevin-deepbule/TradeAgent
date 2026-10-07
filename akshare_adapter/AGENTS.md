@@ -42,8 +42,18 @@ Starting points:
 Run locally:
 
 ```bash
+cd ~/TradeAgent
 source .venv/bin/activate
-mkdir -p .logs && setsid python3 -m akshare_adapter.server > .logs/akshare-adapter.log 2>&1 < /dev/null &
+python3 -m akshare_adapter.server
+```
+
+Run in the background from the repository root:
+
+```bash
+cd ~/TradeAgent
+source .venv/bin/activate
+mkdir -p .logs
+setsid python3 -m akshare_adapter.server > .logs/akshare-adapter.log 2>&1 < /dev/null &
 ```
 
 Compile check:
