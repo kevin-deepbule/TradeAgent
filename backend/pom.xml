@@ -23,11 +23,13 @@
         <module>trade-watchlist</module>
         <module>trade-strategy</module>
         <module>trade-research</module>
+        <module>trade-agent/trade-scanner</module>
         <module>trade-app</module>
     </modules>
 
     <properties>
         <java.version>17</java.version>
+        <mybatis-plus.version>3.5.17</mybatis-plus.version>
     </properties>
 
     <build>

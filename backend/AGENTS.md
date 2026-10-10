@@ -17,9 +17,9 @@ This directory contains the business-oriented Spring Boot modular monolith.
 - `trade-research/`: finance-specific AkShare adapter access, financial
   disclosures, deterministic forecasts and rule-PE baselines, research
   persistence, full-table bounded DeepSeek PE review, and ranking.
-- `../trade-agent/trade-scanner/`: planned Java Scanner orchestration, persistence,
-  deterministic policies, scheduling, model integration, and reliable event
-  publication. It currently contains architecture documentation only.
+- `trade-agent/trade-scanner/`: Java Scanner ingestion, plugin pipeline, evidence,
+  deterministic scoring, scheduling, APIs and RabbitMQ outbox publication.
+  Always starts with the backend. Model integration remains planned.
 - `trade-app/`: runnable entrypoint, runtime properties, health API, error translation, CORS, and module assembly.
 - `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
 - `../depoy/`: Docker Compose services and environment examples for local infrastructure dependencies.
@@ -46,6 +46,13 @@ Current public routes:
 - `GET /api/research/industries`
 - `POST /api/research/valuation-runs`
 - `GET /api/research/valuation-runs/{runId}`
+
+Scanner routes: POST /api/scanner/messages,
+GET /api/scanner/messages/{id}, POST /api/scanner/messages/{id}/retry,
+GET /api/scanner/events, GET /api/scanner/event-types, GET /api/scanner/events/{id},
+GET /api/scanner/events/{id}/evidence, GET /api/scanner/dashboard,
+and GET /api/scanner/collectors/status. Event queries accept an optional version
+to read the immutable snapshot referenced by RabbitMQ.
 
 The frontend depends on the K-line payload fields:
 
@@ -111,6 +118,9 @@ curl --noproxy '*' http://localhost:8001/api/stocks/000001/kline
 - Default backend port is `8001`.
 - Default adapter base URL is `http://localhost:8002`.
 - MyBatis XML mapper resources are owned by and loaded from `trade-watchlist/src/main/resources/mybatis/`.
+- Use one MyBatis-Plus Spring Boot 3 starter and the shared SqlSessionFactory; do not mix MyBatis starters.
+- Configure mapper resources with mybatis-plus.mapper-locations; existing Watchlist XML remains supported.
+- Scanner persistence belongs to ScannerRepository and its MyBatis-Plus entities/Mappers; preserve atomic PostgreSQL upserts and row locks.
 - Local PostgreSQL state lives in the `tradeagent-postgres-data` Docker named volume.
 - `trade-research` reads `DeepSeek_API_KEY` from the optional `depoy/.env`
   import; AI failures must not invalidate deterministic valuation results.

@@ -1,6 +1,7 @@
 # Trade Agent Module Guide
 
-This directory contains planned Java agent capability modules.
+This directory contains Java agent capability modules. Scanner V1 is in the Maven
+reactor and assembled by trade-app, and always starts with the backend.
 
 ## Boundaries
 
@@ -14,4 +15,3 @@ This directory contains planned Java agent capability modules.
   library requirement.
 - Keep module dependencies acyclic and let the backend application assemble
   runnable capabilities.
-

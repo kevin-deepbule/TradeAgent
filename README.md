@@ -7,8 +7,7 @@ backend, and Python AkShare adapter.
 
 ```text
 frontend/          Vue 3 + Vite + ECharts dashboard
-backend/           Spring Boot modular monolith with market and research modules
-trade-agent/       Planned Java agent capability modules
+backend/           Spring Boot modular monolith and planned Java agent modules
 akshare_adapter/   FastAPI internal service wrapping AkShare
 depoy/             Docker Compose services and environment examples
 ```
@@ -23,13 +22,15 @@ The planned Scanner capability keeps workflow control in Java and uses Python
 only for AkShare or a proven Python-specific model dependency:
 
 ```text
-frontend -> backend -> trade-agent/trade-scanner -> PostgreSQL / RabbitMQ
+frontend -> backend/trade-agent/trade-scanner -> PostgreSQL / RabbitMQ
                                              -> akshare_adapter -> AkShare
                                              -> optional Python-only model service
 ```
 
-The Scanner module currently contains architecture documentation only and is
-not part of the running system.
+The Scanner V1 Maven module always starts with the backend, including persistent
+ingestion, the plugin pipeline, deterministic scoring and
+RabbitMQ outbox publication. PostgreSQL and RabbitMQ must be available; see the
+Scanner README for implemented APIs and remaining planned capabilities.
 
 The browser only talks to the Spring Boot backend. The AkShare adapter is an
 internal service used by the backend so data-source details stay out of the
@@ -40,8 +41,8 @@ frontend.
 - [frontend/README.md](frontend/README.md): frontend setup, structure, and build commands.
 - [backend/README.md](backend/README.md): backend setup, API surface, database, and runtime settings.
 - [akshare_adapter/README.md](akshare_adapter/README.md): adapter setup, internal routes, and AkShare notes.
-- [trade-agent/README.md](trade-agent/README.md): Java agent module boundaries.
-- [trade-agent/trade-scanner/README.md](trade-agent/trade-scanner/README.md): planned Java Scanner architecture and delivery phases.
+- [backend/trade-agent/README.md](backend/trade-agent/README.md): Java agent module boundaries.
+- [backend/trade-agent/trade-scanner/README.md](backend/trade-agent/trade-scanner/README.md): planned Java Scanner architecture and delivery phases.
 - [AGENTS.md](AGENTS.md): global project rules for AI and automation agents.
 
 Each subproject also has its own `AGENTS.md` with local development rules.

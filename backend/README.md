@@ -25,9 +25,9 @@ The backend is the public API boundary for the browser. It owns:
 - `trade-research/`: Shenwan industries, disclosures, annual-profit scenarios,
   forecast PE, rule-PE baselines and bounds, full-table DeepSeek PE review,
   five valuation bands, ranking, and saved task snapshots.
-- `../trade-agent/trade-scanner/`: architecture documentation for the planned
-  Java Scanner workflow, event persistence, deterministic policies, scheduling,
-  and reliable publication. It is not yet an executable Maven module.
+- `trade-agent/trade-scanner/`: Java scanner ingestion, pluggable extraction,
+  evidence persistence, deterministic scoring, jobs, APIs and confirmed RabbitMQ
+  outbox publication. It always starts with the backend; see its README for V1 limits.
 - `trade-app/`: Spring Boot entrypoint, runtime properties, health endpoint, exception handling, CORS, and assembly of the other modules.
 - `docs/`: backend design, module documentation, and PostgreSQL initialization scripts.
 - `docs/PostgreSQL/`: first-run PostgreSQL schema initialization scripts.
@@ -40,6 +40,7 @@ trade-app -> trade-market
 trade-app -> trade-watchlist -> trade-market
 trade-app -> trade-strategy  -> trade-market
 trade-app -> trade-research  -> trade-market
+trade-app -> trade-scanner   -> trade-watchlist -> trade-market
 ```
 
 Dependencies point from the runnable application and higher-level capabilities
@@ -137,6 +138,10 @@ mvn -f backend/pom.xml test
 - `POST /api/research/valuation-runs`
 - `GET /api/research/valuation-runs/{runId}`
 
+`/api/scanner` always exposes message ingestion/status/retry,
+event lists/versioned snapshots/evidence, dashboard and collector status.
+See [Scanner runtime and API documentation](trade-agent/trade-scanner/README.md).
+
 Financial valuation runs are asynchronous. The create route returns `202`, and
 the run route exposes `QUEUED`, `RUNNING`, `COMPLETED`, or `FAILED` with
 progress. Completed results retain the report cutoff, source level, financial
@@ -185,7 +190,12 @@ Runtime settings are configured in `trade-app/src/main/resources/application.pro
 - `DEEPSEEK_ENABLED`, default `true`
 - `RESEARCH_AI_BATCH_SIZE`, default `10`, maximum `20`; every valuation row is
   reviewed across as many batches as required
-- `mybatis.mapper-locations`, default `classpath*:mybatis/*.xml`
+- `mybatis-plus.mapper-locations`, default `classpath*:mybatis/*.xml`
+- `mybatis-plus.type-handlers-package`, default `com.tradeagent.scanner.repository.typehandler`
 
 Watchlist-owned MyBatis XML mappers live in
 `trade-watchlist/src/main/resources/mybatis/` and are loaded from the classpath.
+The shared SqlSessionFactory is initialized by the MyBatis-Plus Spring Boot 3 starter;
+do not also add the original MyBatis starter. Scanner persistence uses MyBatis-Plus
+entities, Mapper interfaces and ScannerRepository; Research retains its JDBC storage.
+Scanner integration tests start a private Embedded PostgreSQL without Docker.
