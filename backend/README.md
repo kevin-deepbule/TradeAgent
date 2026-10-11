@@ -181,6 +181,8 @@ Runtime settings are configured in `trade-app/src/main/resources/application.pro
 - `STOCK_REFRESH_SECONDS`, default `60`
 - `DEFAULT_STOCK_SYMBOL`, default `000001`
 - `AKSHARE_ADAPTER_BASE_URL`, default `http://localhost:8002`
+- `SCANNER_COLLECT_DELAY_MS`, default `60000`, controls market and ingestion-only
+  news collector polling intervals.
 - `POSTGRES_JDBC_URL`, default `jdbc:postgresql://localhost:5432/tradeagent`
 - `POSTGRES_USER`, default `tradeagent`
 - `POSTGRES_PASSWORD`, default `tradeagent`

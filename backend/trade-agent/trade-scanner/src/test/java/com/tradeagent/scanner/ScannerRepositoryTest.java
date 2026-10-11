@@ -104,6 +104,20 @@ class ScannerRepositoryTest {
         assertFalse(saved.collectorOrigin);
     }
 
+    /** externalId 在不同来源间仍保持唯一，并返回首次保存的消息 ID。 */
+    @Test
+    void externalIdIsTheGlobalNewsDeduplicationKey() {
+        var first = raw("first-key");
+        first.externalId = "shared-external-id";
+        UUID id = repository.insertRaw(first);
+        var duplicate = raw("second-key");
+        duplicate.sourceId = "another-source";
+        duplicate.externalId = "shared-external-id";
+
+        assertEquals(id, repository.insertRaw(duplicate));
+        assertEquals("test", repository.raw(id).sourceId);
+    }
+
     /** 初始化脚本注册稳定分类，并允许数据库按类型区分事件。 */
     @Test
     void eventTypesAreRegisteredAndStoredOnEvents() {

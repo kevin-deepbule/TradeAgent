@@ -39,9 +39,13 @@ public class ScannerRepository {
         new ResourceDatabasePopulator(new ClassPathResource("scanner-schema.sql")).execute(dataSource);
     }
 
-    /** 保存不可变消息并按来源内幂等键读取稳定 ID。 */
+    /** 保存不可变消息并按外部 ID 或来源内幂等键读取稳定 ID。 */
     public UUID insertRaw(RawMessageEntity row) {
         raw.insertIfAbsent(row);
+        if (row.externalId != null && !row.externalId.isBlank()) {
+            return raw.selectOne(new QueryWrapper<RawMessageEntity>()
+                .eq("external_id", row.externalId)).id;
+        }
         return raw.selectOne(new QueryWrapper<RawMessageEntity>()
             .eq("source_id", row.sourceId).eq("dedup_key", row.dedupKey)).id;
     }

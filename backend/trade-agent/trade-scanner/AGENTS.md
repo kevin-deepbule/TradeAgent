@@ -19,7 +19,10 @@ It is assembled by trade-app and always starts with the backend; no enable flag 
 - Published messages represent research candidates, not confirmed facts; keep source trust in scoring.
 - Publisher confirms and mandatory returns must succeed before marking PUBLISHED.
 - The market collector reads completed recent rows from the existing market cache.
-- Announcement/news ingestion, LLM, semantic matching and Research consumption remain future work.
+- CLS, Eastmoney and 10jqka collectors persist ingestion-only RawMessages;
+  event extraction, LLM, semantic matching and Research consumption remain future work.
+- News responses discard adapter `raw`, deduplicate on the explicit external_id
+  column, and retain the stable source_id.
 - Retry uses persisted evidence; database failures roll back the whole processing transaction.
 
 ## Boundaries

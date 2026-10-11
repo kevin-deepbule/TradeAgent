@@ -15,6 +15,8 @@ can change.
 - `stock_adapter.py`: AkShare calls, symbol resolution, and K-line shaping.
 - `financial_adapter.py`: Shenwan industries, financial disclosures, formal
   quarterly facts, current market snapshots, and analyst EPS forecasts.
+- `news_adapter.py`: AkShare news calls, validation, stable IDs, and message
+  payload shaping without event classification.
 - `config.py`: adapter host, port, and K-line window settings.
 - `utils.py`: stock-symbol, text, market, date, and NaN helpers.
 - `__init__.py`: package marker.
@@ -24,9 +26,9 @@ can change.
 From the repository root:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install -r requirements.txt
+python3 -m venv akshare_adapter/.venv
+source akshare_adapter/.venv/bin/activate
+python3 -m pip install -r akshare_adapter/requirements.txt
 ```
 
 ## Run
@@ -39,7 +41,7 @@ Start it in the foreground while developing:
 
 ```bash
 cd ~/TradeAgent
-source .venv/bin/activate
+source akshare_adapter/.venv/bin/activate
 python3 -m akshare_adapter.server
 ```
 
@@ -47,7 +49,7 @@ Or start it in the background and write output to a log file:
 
 ```bash
 cd ~/TradeAgent
-source .venv/bin/activate
+source akshare_adapter/.venv/bin/activate
 mkdir -p .logs
 setsid python3 -m akshare_adapter.server > .logs/akshare-adapter.log 2>&1 < /dev/null &
 ```
@@ -84,8 +86,21 @@ curl --noproxy '*' http://localhost:8002/internal/health
 - `GET /internal/research/stocks/{symbol}/financials?report_period=YYYYMMDD&as_of=YYYY-MM-DD`
 - `POST /internal/research/market-snapshot`
 - `GET /internal/research/profit-forecasts`
+- `GET /internal/news/cls?symbol=全部&limit=100`
+- `GET /internal/news/eastmoney?limit=100`
+- `GET /internal/news/ths?limit=100`
 
 These routes are for the Java backend, not for direct browser use.
+
+The CLS route uses `stock_info_global_cls` and accepts AkShare's `全部` or `重点`
+category. It preserves the original Chinese columns under each row's `raw`
+field and derives `externalId` because the upstream frame has no message ID.
+Messages remain unclassified; event extraction and scoring are not adapter
+responsibilities.
+
+The Eastmoney route uses `stock_info_global_em`; the 10jqka route uses
+`stock_info_global_ths`. Both preserve their original columns under `raw` and
+expose the provider link as `url` without classifying the message.
 
 Research routes use `sw_index_third_info`, `sw_index_third_cons`,
 `stock_yjyg_em`, `stock_yjkb_em`, `stock_yjbb_em`, quarterly profit/cash-flow

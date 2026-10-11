@@ -27,7 +27,9 @@ public class CollectorJob {
             try {
                 for (var raw : collector.collect()) {
                     if (!collector.sourceId().equals(raw.sourceId())) throw new IllegalArgumentException("Collector source mismatch");
-                    service.submitCollected(raw); count++;
+                    if (collector.ingestionOnly()) service.submitCollectedOnly(raw);
+                    else service.submitCollected(raw);
+                    count++;
                 }
             } catch (RuntimeException failure) { error = failure.getClass().getSimpleName(); }
             repository.recordCollector(collector.sourceId(), Instant.now(), count, error);

@@ -47,7 +47,7 @@ an internal backend dependency.
 AkShare adapter:
 
 ```bash
-source .venv/bin/activate
+source akshare_adapter/.venv/bin/activate
 mkdir -p .logs && setsid python3 -m akshare_adapter.server > .logs/akshare-adapter.log 2>&1 < /dev/null &
 ```
 

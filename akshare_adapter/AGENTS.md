@@ -34,6 +34,8 @@ Starting points:
 - `stock_adapter.py`: AkShare calls, stock resolution, and K-line payload shaping.
 - `financial_adapter.py`: Shenwan membership, disclosures, formal quarterly
   statements, spot valuation inputs, and analyst EPS forecast adaptation.
+- `news_adapter.py`: AkShare news calls and raw-message adaptation; do not put
+  event classification, scoring, or stock mapping here.
 - `config.py`: environment-derived adapter settings.
 - `utils.py`: small data, symbol, market, date, and NaN helpers.
 
@@ -43,7 +45,7 @@ Run locally:
 
 ```bash
 cd ~/TradeAgent
-source .venv/bin/activate
+source akshare_adapter/.venv/bin/activate
 python3 -m akshare_adapter.server
 ```
 
@@ -51,7 +53,7 @@ Run in the background from the repository root:
 
 ```bash
 cd ~/TradeAgent
-source .venv/bin/activate
+source akshare_adapter/.venv/bin/activate
 mkdir -p .logs
 setsid python3 -m akshare_adapter.server > .logs/akshare-adapter.log 2>&1 < /dev/null &
 ```

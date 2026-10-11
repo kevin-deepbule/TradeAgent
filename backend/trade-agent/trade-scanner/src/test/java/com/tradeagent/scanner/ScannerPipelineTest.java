@@ -84,6 +84,31 @@ class ScannerPipelineTest {
             new RawMessage("exchange", null, "test", "test", null, Instant.now(), List.of("invalid"))));
     }
 
+    /** 验证仅采集资讯按 externalId 保存后直接完成，不调用事件处理流水线。 */
+    @Test
+    void ingestionOnlyNewsSkipsPipeline() {
+        var repository = mock(ScannerRepository.class);
+        var pipeline = mock(MessagePipeline.class);
+        var transactions = mock(TransactionTemplate.class);
+        UUID id = UUID.randomUUID();
+        when(repository.insertRaw(any())).thenReturn(id);
+        when(transactions.execute(any())).thenAnswer(call -> {
+            org.springframework.transaction.support.TransactionCallback<?> callback = call.getArgument(0);
+            return callback.doInTransaction(mock(org.springframework.transaction.TransactionStatus.class));
+        });
+        var service = new ScannerService(repository, new ObjectMapper().findAndRegisterModules(),
+            transactions, pipeline, new EventScorer(List.of()));
+        var news = new RawMessage("cls-news", "external-1", "标题", "正文", null,
+            Instant.parse("2026-10-11T07:00:00Z"), List.of());
+
+        assertEquals(id, service.submitCollectedOnly(news));
+
+        verify(repository).insertRaw(argThat(row -> row.externalId.equals("external-1")
+            && row.sourceId.equals("cls-news") && row.collectorOrigin));
+        verify(repository).completeRaw(id, "[\"ingestion-only\"]");
+        verifyNoInteractions(pipeline);
+    }
+
     /** 验证发布不依赖验证状态，但仍要求达到评分阈值且关联股票。 */
     @ParameterizedTest
     @CsvSource({"CONFIRMED,75,true,true", "UNVERIFIED,70,true,true",

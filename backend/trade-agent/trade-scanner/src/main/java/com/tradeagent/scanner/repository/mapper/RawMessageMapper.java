@@ -10,11 +10,11 @@ import org.apache.ibatis.annotations.Select;
 /** 原始消息 Mapper，保留 PostgreSQL 原子去重与并发领取语义。 */
 @Mapper
 public interface RawMessageMapper extends BaseMapper<RawMessageEntity> {
-    /** 重复提交不覆盖原始证据，依赖来源内唯一约束保证幂等。 */
+    /** 重复提交不覆盖原始证据，优先依赖外部 ID 唯一索引保证幂等。 */
     @Insert("""
-        INSERT INTO scanner_raw_message(id,source_id,dedup_key,payload,collector_origin)
-        VALUES (#{row.id},#{row.sourceId},#{row.dedupKey},#{row.payload},#{row.collectorOrigin})
-        ON CONFLICT(source_id,dedup_key) DO NOTHING
+        INSERT INTO scanner_raw_message(id,source_id,external_id,dedup_key,payload,collector_origin)
+        VALUES (#{row.id},#{row.sourceId},#{row.externalId},#{row.dedupKey},#{row.payload},#{row.collectorOrigin})
+        ON CONFLICT DO NOTHING
         """)
     int insertIfAbsent(@Param("row") RawMessageEntity row);
 

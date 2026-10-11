@@ -15,6 +15,11 @@ from akshare_adapter.financial_adapter import (
     fetch_market_snapshot_sync,
     fetch_profit_forecasts_sync,
 )
+from akshare_adapter.news_adapter import (
+    fetch_cls_news_sync,
+    fetch_eastmoney_news_sync,
+    fetch_ths_news_sync,
+)
 from akshare_adapter.stock_adapter import fetch_kline_sync, resolve_stock_sync
 
 
@@ -115,6 +120,36 @@ def create_app() -> FastAPI:
         """Return current analyst EPS forecast coverage for A-share stocks."""
         try:
             return await asyncio.to_thread(fetch_profit_forecasts_sync)
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    @app.get("/internal/news/cls")
+    async def get_cls_news(symbol: str = "全部", limit: int = 100) -> dict[str, Any]:
+        """Return recent unclassified CLS telegraphs fetched through AkShare."""
+        try:
+            return await asyncio.to_thread(fetch_cls_news_sync, symbol, limit)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    @app.get("/internal/news/eastmoney")
+    async def get_eastmoney_news(limit: int = 100) -> dict[str, Any]:
+        """Return recent unclassified Eastmoney news fetched through AkShare."""
+        try:
+            return await asyncio.to_thread(fetch_eastmoney_news_sync, limit)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    @app.get("/internal/news/ths")
+    async def get_ths_news(limit: int = 100) -> dict[str, Any]:
+        """Return recent unclassified 10jqka news fetched through AkShare."""
+        try:
+            return await asyncio.to_thread(fetch_ths_news_sync, limit)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         except Exception as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
 

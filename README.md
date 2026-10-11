@@ -55,15 +55,15 @@ responsibilities, or runtime assumptions, update the nearest matching
 Install Python dependencies once:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install -r requirements.txt
+python3 -m venv akshare_adapter/.venv
+source akshare_adapter/.venv/bin/activate
+python3 -m pip install -r akshare_adapter/requirements.txt
 ```
 
 Run the AkShare adapter:
 
 ```bash
-source .venv/bin/activate
+source akshare_adapter/.venv/bin/activate
 mkdir -p .logs && setsid python3 -m akshare_adapter.server > .logs/akshare-adapter.log 2>&1 < /dev/null &
 ```
 

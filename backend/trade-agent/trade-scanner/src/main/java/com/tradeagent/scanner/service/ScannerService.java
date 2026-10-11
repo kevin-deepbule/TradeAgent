@@ -47,6 +47,19 @@ public class ScannerService {
         return persist(raw, true);
     }
 
+    /** 保存仅采集消息并直接完成处理，避免进入事件、评分和 Outbox 流程。 */
+    public UUID submitCollectedOnly(RawMessage raw) {
+        if (raw == null || raw.externalId() == null || raw.externalId().isBlank()
+            || raw.externalId().length() > 500) {
+            throw new IllegalArgumentException("Collected news requires a bounded externalId");
+        }
+        return transactions.execute(tx -> {
+            UUID id = persist(raw, true);
+            repository.completeRaw(id, "[\"ingestion-only\"]");
+            return id;
+        });
+    }
+
     /** 校验并保存不可变证据，记录服务端确定的来源类型。 */
     private UUID persist(RawMessage raw, boolean collectorOrigin) {
         if (raw == null || raw.sourceId() == null || raw.sourceId().isBlank()
@@ -59,7 +72,7 @@ public class ScannerService {
             ? "id:" + raw.externalId() : "hash:" + hash(raw.title() + "\n" + raw.content());
         key = (collectorOrigin ? "collector:" : "manual:") + key;
         var row = new RawMessageEntity();
-        row.id = UUID.randomUUID(); row.sourceId = raw.sourceId(); row.dedupKey = key;
+        row.id = UUID.randomUUID(); row.sourceId = raw.sourceId(); row.externalId = raw.externalId(); row.dedupKey = key;
         row.payload = encode(raw); row.collectorOrigin = collectorOrigin;
         return repository.insertRaw(row);
     }

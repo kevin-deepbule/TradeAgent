@@ -12,6 +12,7 @@ public class RawMessageEntity {
     @TableId(type = IdType.INPUT)
     public UUID id;
     public String sourceId;
+    public String externalId;
     public String dedupKey;
     public String payload;
     public String status;

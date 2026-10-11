@@ -1,5 +1,7 @@
 # Trade Scanner 架构设计
 
+资讯采集的字段、去重、配置和运行说明见 [NEWS_COLLECTOR.md](NEWS_COLLECTOR.md)。
+
 `trade-scanner` 是规划中的 Java 业务模块，用于发现重要的 A 股市场事件。
 它负责完整的 Scanner 工作流，包括采集编排、持久化状态、事件处理、
 确定性规则、可靠消息发布以及 Scanner API。
@@ -15,8 +17,12 @@ Outbox、RabbitMQ mandatory routing 和 publisher confirms。
 
 自选股行情采集器读取 `trade-market` 的已有缓存，检测最近七个自然日内完成
 收盘且涨跌幅绝对值至少 4% 的日线。它不额外抓取 AkShare，不把行情异常当作
-已确认公告。公告/新闻 AkShare 采集器、LLM、近似合并、跨来源验证、独立 Clue
-工作流和 Research 消费端尚未实现。行情和手动消息生成的事件保持 UNVERIFIED，
+已确认公告。财联社、东方财富和同花顺资讯采集器已通过内部 Adapter 接入，每轮只保存
+`externalId/title/content/url/publishedAt`，明确丢弃 Adapter 的 `raw`。数据库使用
+`external_id` 唯一索引去重，并用 `source_id` 区分 `cls-news`、`eastmoney-news` 和
+`ths-news`。这些资讯当前只采集，保存后直接完成，不进入事件抽取、评分或 Outbox。
+公告采集器、LLM、近似合并、跨来源验证、独立 Clue 工作流和 Research 消费端尚未实现。
+行情和手动消息生成的事件保持 UNVERIFIED，
 验证状态不作为发布门槛；当前评分规则下，这些来源最高为 55 分，仍低于 70 分发布阈值。
 
 先启动 `depoy/docker-compose-fundament.yml` 中 PostgreSQL 和 RabbitMQ，再运行：
@@ -34,6 +40,9 @@ Collector ID；仅服务端 Collector 的消息可使用该可信策略。HTTP �
 不要求 CONFIRMED。发布表示值得进一步研究，而不是事实已确认。评分权重和阈值
 本次不调整。消费端必须根据 messageId 幂等，使用
 eventId + eventVersion 获取精确快照。
+
+资讯采集默认每 60 秒运行一次，可通过 `SCANNER_COLLECT_DELAY_MS` 调整。Java 使用
+`AKSHARE_ADAPTER_BASE_URL` 调用内部 Adapter；浏览器不直接调用资讯 Adapter。
 
 事件分类由 `scanner_event_type` 注册表统一管理，当前注册 `EARNINGS`、
 `BUYBACK`、`CONTRACT`、`RISK`、`OWNERSHIP` 和 `MARKET_MOVE`。每条
@@ -228,6 +237,10 @@ WatchlistMarketCollector
 AnnouncementCollector
 NewsCollector
 ```
+
+当前资讯实现将 NewsCollector 拆成 `ClsNewsCollector`、
+`EastmoneyNewsCollector` 和 `ThsNewsCollector`。三个 Collector 共用统一 DTO，
+但各自保留独立来源 ID；它们只写 RawMessage，不参与事件 Pipeline。
 
 后续接入的社交媒体来源只能生成 `Clue`，不能直接写入正式 Event 池。
 
